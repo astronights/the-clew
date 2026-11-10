@@ -63,7 +63,7 @@ export function Thread({ entries, domain }: { entries: Entry[]; domain: Domain }
   return (
     <ol className="thread" aria-label="Clues and guesses">
       <li className="thread-spool" aria-hidden="true">
-        <YarnBall size={40} />
+        <YarnBall size={44} tail={false} />
       </li>
       {entries.map((e, i) => (
         <li

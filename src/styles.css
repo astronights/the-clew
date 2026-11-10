@@ -210,7 +210,6 @@ button {
   color: var(--thread);
 }
 .logo-ball {
-  animation: wobble 5s ease-in-out infinite;
   transform-origin: 50% 60%;
 }
 .topbar-actions {
@@ -376,12 +375,11 @@ button {
   width: 44px;
   display: flex;
   justify-content: center;
-  margin: 4px 0 -6px;
+  margin: 4px 0 -14px 0;
   position: relative;
   z-index: 2;
 }
 .thread-spool .yarn-ball {
-  animation: wobble 4s ease-in-out infinite;
   transform-origin: 50% 60%;
 }
 
@@ -831,7 +829,6 @@ button {
 }
 .howto-ball {
   flex: none;
-  animation: wobble 4s ease-in-out infinite;
 }
 .modal h2 {
   font-size: 2rem;
@@ -1144,15 +1141,6 @@ button {
   }
   75% {
     translate: 5px;
-  }
-}
-@keyframes wobble {
-  0%,
-  100% {
-    transform: rotate(-7deg);
-  }
-  50% {
-    transform: rotate(7deg);
   }
 }
 @keyframes spin {
