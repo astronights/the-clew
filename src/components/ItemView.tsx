@@ -81,11 +81,9 @@ export function ItemView({ domain, item, size = 'md' }: { domain: Domain; item: 
 
 export function VerdictBadge({ pass, animate = true }: { pass: boolean; animate?: boolean }) {
   return (
-    <span className={`verdict ${pass ? 'is-pass' : 'is-fail'} ${animate ? 'pop' : ''}`}>
-      <span className="verdict-icon" aria-hidden="true">
-        {pass ? '✓' : '✗'}
-      </span>
-      {pass ? 'passes' : 'fails'}
+    <span className={`stamp ${pass ? 'is-pass' : 'is-fail'} ${animate ? 'thud' : ''}`}>
+      <span aria-hidden="true">{pass ? '✓' : '✗'}</span>
+      {pass ? 'Passes' : 'Fails'}
     </span>
   );
 }

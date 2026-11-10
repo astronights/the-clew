@@ -77,7 +77,12 @@ export function Play({ rule, storageKey, seed, onFinish, renderResult }: Props) 
   return (
     <div className="play">
       <p className="domain-badge">
-        <span aria-hidden="true">🧵</span> {DOMAIN_LABEL[rule.domain]} · clue {game.revealed} of {MAX_CLUES}
+        <span className="domain-name">{DOMAIN_LABEL[rule.domain]}</span>
+        <span className="clue-pips" aria-label={`clue ${game.revealed} of ${MAX_CLUES}`}>
+          {Array.from({ length: MAX_CLUES }, (_, i) => (
+            <span key={i} className={`pip ${i < game.revealed ? 'is-on' : ''}`} />
+          ))}
+        </span>
       </p>
 
       <Thread entries={game.entries} domain={rule.domain} />
@@ -92,11 +97,11 @@ export function Play({ rule, storageKey, seed, onFinish, renderResult }: Props) 
         <div className="action-bar">
           {canGuessItem(game) && (
             <button className="btn btn-secondary" onClick={() => setSheet('item')}>
-              <span aria-hidden="true">🧪</span> Test an item
+              Test an item
             </button>
           )}
           <button className="btn btn-primary" onClick={() => setSheet('rule')}>
-            <span aria-hidden="true">💡</span> {finalRound ? 'Final guess: name it' : 'Name the rule'}
+            {finalRound ? 'Final guess' : 'Name the rule'}
           </button>
           {finalRound && (
             <button className="btn btn-link" onClick={() => update(giveUp(game))}>
@@ -196,9 +201,7 @@ function RuleGuess({
       <button type="submit" className="btn btn-primary btn-block" disabled={busy || text.trim().length < 3}>
         {busy ? (
           <>
-            <span className="spin" aria-hidden="true">
-              🧶
-            </span>{' '}
+            <span className="spin" aria-hidden="true" />
             The judge is pondering…
           </>
         ) : (

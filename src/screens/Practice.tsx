@@ -31,7 +31,7 @@ export function Practice({ today }: { today: number }) {
         <p>Replay a random rule from an earlier day. Practice games don't touch your stats or streak.</p>
         <p className="muted">{past.length} past rules available.</p>
         <button className="btn btn-primary btn-block" onClick={pick}>
-          🧶 Pull a random thread
+          Pull a random thread
         </button>
       </section>
     );

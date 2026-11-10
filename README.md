@@ -14,7 +14,7 @@ Pass/fail is always deterministic TypeScript. AI (Gemini) is only used to judge 
 
 ## Stack
 
-- Vite + React + TypeScript (no UI libraries), Google Font *Fredoka*
+- Vite + React + TypeScript (no UI libraries), Google Fonts *Fraunces* (display) + *DM Sans* (body)
 - Vercel Functions in `/api` (Web `Request`/`Response` handlers)
 - Neon Postgres via `@neondatabase/serverless`
 - Vitest

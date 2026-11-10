@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { HowToPlay } from './components/HowToPlay';
+import { YarnBall } from './components/YarnBall';
 import { load, save } from './lib/storage';
 import { puzzleNumber } from './lib/daily';
 import { Practice } from './screens/Practice';
@@ -39,7 +40,10 @@ export function App() {
     <div className="app">
       <header className="topbar">
         <h1 className="logo">
-          <span aria-hidden="true" className="logo-ball">🧶</span> The Clew
+          <YarnBall size={34} className="logo-ball" />
+          <span>
+            The <em>Clew</em>
+          </span>
         </h1>
         <div className="topbar-actions">
           <button className="icon-btn" onClick={() => setHelp(true)} aria-label="How to play">
@@ -59,7 +63,7 @@ export function App() {
       <nav className="tabs" aria-label="Screens">
         {(['today', 'practice', 'stats'] as Tab[]).map((t) => (
           <button key={t} className={`tab ${tab === t ? 'is-active' : ''}`} aria-current={tab === t ? 'page' : undefined} onClick={() => setTab(t)}>
-            {t === 'today' ? `Today #${today}` : t === 'practice' ? 'Practice' : 'Stats'}
+            {t === 'today' ? `Today · #${today}` : t === 'practice' ? 'Practice' : 'Stats'}
           </button>
         ))}
       </nav>

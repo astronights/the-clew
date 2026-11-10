@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Rule } from '../rules/types';
 import { msUntilNextPuzzle } from '../lib/daily';
-import { neededMorePercent, shareText, solvedPercent, threadBar } from '../lib/share';
+import { neededMorePercent, shareText, solvedPercent } from '../lib/share';
 
 function Countdown() {
   const [ms, setMs] = useState(() => msUntilNextPuzzle());
@@ -44,19 +44,23 @@ export function ResultCard({ rule, solvedOn, puzzleNo, counts, practice, onAgain
 
   return (
     <section className={`result card pop-in ${solved ? 'is-solved' : 'is-failed'}`} aria-live="polite">
-      <div className="result-bar" aria-hidden="true">
-        {threadBar(solvedOn)}
+      <div className="result-pips" aria-hidden="true">
+        {Array.from({ length: 5 }, (_, i) => (
+          <span key={i} className={`pip ${solved ? (i < solvedOn ? 'is-on' : '') : 'is-snap'}`} />
+        ))}
       </div>
       <h2>{solved ? (solvedOn === 1 ? 'First clue. Wizardry!' : `Solved on clue ${solvedOn}!`) : 'The thread snapped'}</h2>
       <p className="result-rule">
         <span className="muted">The rule was</span>
-        <strong>{rule.description}</strong>
+        <strong>
+          <mark>{rule.description}</mark>
+        </strong>
       </p>
       {!practice && pct !== null && <p className="center">{solved ? `${pct}% of players needed more clues` : `${pct}% of players solved it`}</p>}
       {!practice && (
         <>
           <button className="btn btn-primary btn-block" onClick={copy}>
-            📋 Copy result
+            Copy result
           </button>
           <p className="muted center copy-status" role="status">
             {copied === 'ok' ? 'Copied! Paste it anywhere.' : copied === 'fail' ? 'Could not copy — your browser blocked it.' : ' '}
@@ -67,7 +71,7 @@ export function ResultCard({ rule, solvedOn, puzzleNo, counts, practice, onAgain
       )}
       {practice && onAgain && (
         <button className="btn btn-primary btn-block" onClick={onAgain}>
-          🧶 Another practice rule
+          Another practice rule
         </button>
       )}
     </section>
