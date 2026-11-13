@@ -627,39 +627,6 @@ input {
   margin: -8px 0 14px;
   color: var(--ink-2);
 }
-.trail {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 12px;
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
-}
-.trail-step {
-  padding: 8px 2px;
-  border: 1.5px solid var(--ink);
-  border-radius: 4px;
-  text-align: center;
-  font-family: var(--mono);
-  font-size: 0.68rem;
-  line-height: 1.4;
-}
-.trail-step.is-solved {
-  background: var(--ink);
-  color: var(--bg);
-}
-.trail-step.is-test,
-.trail-step.is-next,
-.trail-step.is-unused {
-  border-style: dashed;
-  color: var(--ink-2);
-}
-.trail-step.is-unused {
-  opacity: 0.5;
-}
-.trail-step.is-miss {
-  background: repeating-linear-gradient(135deg, var(--tag) 0 7px, var(--hatch) 7px 9px);
-}
 .result .note {
   margin-bottom: 14px;
 }

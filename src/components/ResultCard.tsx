@@ -19,8 +19,6 @@ function Countdown() {
   );
 }
 
-const TRAIL_TEXT: Record<Outcome, string> = { next: 'next', test: 'guessed', miss: 'wrong rule', solved: 'got it ✓' };
-
 interface Props {
   puzzle: Puzzle;
   solvedOn: number;
@@ -55,18 +53,6 @@ export function ResultCard({ puzzle, solvedOn, outcomes, puzzleNo, counts }: Pro
       <p className="result-rule">{puzzle.connection}</p>
       <p className="result-expl">{puzzle.explanation}</p>
 
-      <ol className="trail" aria-label="How each clue went">
-        {Array.from({ length: ROWS }, (_, i) => {
-          const o = outcomes[i];
-          return (
-            <li key={i} className={`trail-step ${o ? `is-${o}` : 'is-unused'}`}>
-              clue {i + 1}
-              <br />
-              {o ? TRAIL_TEXT[o] : '—'}
-            </li>
-          );
-        })}
-      </ol>
 
       {pct !== null && <p className="note">{solved ? `${pct}% of players needed more clues.` : `${pct}% of players got it today.`}</p>}
 
