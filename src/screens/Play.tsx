@@ -117,7 +117,7 @@ export function Play({ rule, storageKey, seed, onFinish, renderResult }: Props) 
 
       {sheet === 'item' && (
         <Sheet title="Test an item" onClose={() => setSheet(null)}>
-          <p className="muted">Make something you think passes. You'll see ✅ or ❌, then the next clue.</p>
+          <p className="muted">Make something you think passes. You'll see whether it does, then the next clue.</p>
           <ItemInput domain={rule.domain} onSubmit={onItem} submitLabel="Test it" />
         </Sheet>
       )}

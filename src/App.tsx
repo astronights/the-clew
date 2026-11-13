@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { HowToPlay } from './components/HowToPlay';
-import { YarnBall } from './components/YarnBall';
+import { ClewMark } from './components/ClewMark';
 import { load, save } from './lib/storage';
 import { puzzleNumber } from './lib/daily';
 import { Practice } from './screens/Practice';
@@ -9,7 +9,28 @@ import { Today } from './screens/Today';
 
 type Tab = 'today' | 'practice' | 'stats';
 type Theme = 'system' | 'light' | 'dark';
-const THEME_ICON: Record<Theme, string> = { system: '🌗', light: '☀️', dark: '🌙' };
+function ThemeIcon({ theme }: { theme: Theme }) {
+  const common = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, 'aria-hidden': true };
+  if (theme === 'light')
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="4.5" />
+        <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" />
+      </svg>
+    );
+  if (theme === 'dark')
+    return (
+      <svg {...common}>
+        <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" />
+      </svg>
+    );
+  return (
+    <svg {...common}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 3.5a8.5 8.5 0 0 1 0 17Z" fill="currentColor" />
+    </svg>
+  );
+}
 const NEXT_THEME: Record<Theme, Theme> = { system: 'light', light: 'dark', dark: 'system' };
 
 export function App() {
@@ -40,7 +61,7 @@ export function App() {
     <div className="app">
       <header className="topbar">
         <h1 className="logo">
-          <YarnBall size={34} className="logo-ball" />
+          <ClewMark size={26} className="logo-mark" />
           <span>
             The <em>Clew</em>
           </span>
@@ -55,7 +76,7 @@ export function App() {
             aria-label={`Theme: ${theme}. Switch to ${NEXT_THEME[theme]}`}
             title={`Theme: ${theme}`}
           >
-            <span aria-hidden="true">{THEME_ICON[theme]}</span>
+            <ThemeIcon theme={theme} />
           </button>
         </div>
       </header>

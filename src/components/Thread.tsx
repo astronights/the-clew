@@ -2,7 +2,6 @@ import { useRef, type CSSProperties } from 'react';
 import type { Domain } from '../rules/types';
 import type { Entry } from '../lib/game';
 import { ItemView, VerdictBadge } from './ItemView';
-import { YarnBall } from './YarnBall';
 
 const VERDICT_TEXT = { correct: 'On the right thread!', close: 'Close!', wrong: 'Not it' } as const;
 const VERDICT_ICON = { correct: '✓', close: '≈', wrong: '✗' } as const;
@@ -38,7 +37,7 @@ function EntryBody({ entry, domain }: { entry: Entry; domain: Domain }) {
         <>
           <div className="entry-label">You named the rule</div>
           <p className="entry-quote">“{entry.text}”</p>
-          <div className={`rule-verdict is-${entry.verdict} thud`}>
+          <div className={`rule-verdict is-${entry.verdict} in`}>
             <span aria-hidden="true">{VERDICT_ICON[entry.verdict]}</span> {VERDICT_TEXT[entry.verdict]}
             {entry.hint && <span className="hint"> · {entry.hint}</span>}
           </div>
@@ -48,7 +47,7 @@ function EntryBody({ entry, domain }: { entry: Entry; domain: Domain }) {
       return (
         <>
           <div className="entry-label">Proof</div>
-          <div className={`rule-verdict is-${entry.passed ? 'correct' : 'wrong'} thud`}>
+          <div className={`rule-verdict is-${entry.passed ? 'correct' : 'wrong'} in`}>
             <span aria-hidden="true">{entry.passed ? '✓' : '✗'}</span> {entry.score}/3 right
             {!entry.passed && <span className="hint"> · the answers are added below</span>}
           </div>
@@ -62,9 +61,6 @@ export function Thread({ entries, domain }: { entries: Entry[]; domain: Domain }
   const initial = useRef(entries.length);
   return (
     <ol className="thread" aria-label="Clues and guesses">
-      <li className="thread-spool" aria-hidden="true">
-        <YarnBall size={44} tail={false} />
-      </li>
       {entries.map((e, i) => (
         <li
           key={i}

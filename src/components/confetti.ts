@@ -14,7 +14,7 @@ export function confetti(durationMs = 2600): void {
     canvas.height = innerHeight * dpr;
   };
   resize();
-  const colours = ['#e86a50', '#3a7bd5', '#3aa65b', '#f2c230', '#b06ad9', '#ff9fb2'];
+  const colours = ['#b8492b', '#e0795b', '#2d6a4f', '#d9a441', '#3d5a80', '#c9b8a6'];
   const pieces = Array.from({ length: 140 }, () => ({
     x: innerWidth / 2 + (Math.random() - 0.5) * 80,
     y: innerHeight * 0.35,

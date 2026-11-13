@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { ItemView, VerdictBadge } from './ItemView';
-import { YarnBall } from './YarnBall';
+import { ClewMark } from './ClewMark';
 
 export function HowToPlay({ onClose }: { onClose: () => void }) {
   const btn = useRef<HTMLButtonElement>(null);
@@ -14,7 +14,7 @@ export function HowToPlay({ onClose }: { onClose: () => void }) {
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal card" role="dialog" aria-modal="true" aria-labelledby="howto-title" onClick={(e) => e.stopPropagation()}>
         <h2 id="howto-title" className="howto-title">
-          <YarnBall size={36} className="howto-ball" />
+          <ClewMark size={30} className="howto-mark" />
           How to play
         </h2>
         <p>
