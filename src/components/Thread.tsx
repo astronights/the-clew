@@ -2,7 +2,6 @@ import { useRef, type CSSProperties } from 'react';
 import type { Entry } from '../lib/game';
 import { ROWS, type Puzzle } from '../lib/puzzle';
 
-const ORDINAL = ['1st', '2nd', '3rd', '4th', '5th'];
 type Guess = Extract<Entry, { kind: 'test' }>;
 
 interface Props {
@@ -35,18 +34,15 @@ export function Thread({ puzzle, revealed, over, guesses }: Props) {
             <div className={`tag ${shown ? '' : 'is-unused'} ${guess ? (guess.pass ? 'guess-right' : 'guess-wrong') : ''}`}>
               <span className="tag-label">
                 {shown ? `Clue ${i + 1}` : `Clue ${i + 1} · unused`}
-                {guess && (
-                  <span className={`guess-mark ${guess.pass ? 'is-right' : 'is-wrong'}`}>
-                    {' · '}your guess {guess.pass ? '✓' : '✗'}
-                    <span className="sr-only">
-                      {' '}
-                      ({guess.item} was {guess.pass ? 'right' : 'wrong'})
-                    </span>
-                  </span>
-                )}
+                {guess && <span className="guess-said">{` · you guessed ${guess.item}`}</span>}
               </span>
               <span className={`item-text ${shown ? '' : 'item-sm'}`}>{puzzle.rows[i]}</span>
-              <span className="verdict">{ORDINAL[i]}</span>
+              {guess && (
+                <span className={`verdict guess-verdict ${guess.pass ? 'is-right' : 'is-wrong'}`}>
+                  <span aria-hidden="true">{guess.pass ? '✓' : '✗'}</span> {guess.pass ? 'Yes' : 'No'}
+                  <span className="sr-only">, your guess was {guess.pass ? 'right' : 'wrong'}</span>
+                </span>
+              )}
             </div>
           </li>
         );

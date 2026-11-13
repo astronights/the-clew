@@ -303,10 +303,23 @@ input {
   margin: 0;
   color: var(--thread);
 }
-.guess-mark.is-right {
+.tag-label {
+  max-width: calc(100% - 40px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.guess-said {
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+.guess-verdict {
+  font-size: 0.85rem;
+}
+.guess-verdict.is-right {
   color: var(--right);
 }
-.guess-mark.is-wrong {
+.guess-verdict.is-wrong {
   color: var(--thread);
 }
 .tag.guess-right {
