@@ -3,8 +3,8 @@
 A mobile-first daily deduction puzzle. One secret rule per day, the same for everyone (new rule at 00:00 UTC). Clues hang on a thread; work out the rule in as few as you can.
 
 - **Clue 1** is shown: an item marked ✓ fits or ✗ doesn't fit the rule.
-- The thread always has 5 rows: clues 1–4 and a 5th row. **Next ›** opens the next clue. If you've typed an item
-  first, the button becomes **Test ›**: the 5th row shows your item with ✓/✗ and the next clue opens. Tests aren't
+- The thread always has 5 rows: clues 1–4 and a 5th row. **Next ›** opens the next clue. If you've typed something
+  in the free-text test box first ("35", "3, 8, 12", "red star, blue circle", "Café", any answer on sequence days), the button becomes **Test ›**: the 5th row shows your item with ✓/✗ and the next clue opens. Tests aren't
   scored, and only your latest test is shown.
 - Or **name the rule** in your own words. Right → solved on that clue. Wrong → a short "not it" and the next clue opens. No hints.
 - There are 4 clues. On the last one there's nothing left to reveal, so it's one final rule guess (or give up).
@@ -52,7 +52,7 @@ src/
   rules/              types, numbers/sequences/tiles/words rules + decoys, clues.ts, wordlist
   lib/                daily picker, fuzzy matcher, game state machine,
                       clue generator, elimination, validation, share text, stats, storage
-  components/         Thread, ItemView, FifthInput (number / sequence / word / tile builder), Sheet, ResultCard, HowToPlay, confetti
+  components/         Thread, ItemView, FifthInput (one free-text test box, read as the day's item type), Sheet, ResultCard, HowToPlay, confetti
   screens/            Today, Stats, Play (game screen)
 tests/                Vitest suites
 ```

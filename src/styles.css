@@ -459,6 +459,12 @@ input {
 .input:disabled {
   opacity: 0.5;
 }
+.field-hint {
+  min-height: 1.1em;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  color: var(--ink-2);
+}
 .input-button {
   display: flex;
   align-items: center;
@@ -531,11 +537,16 @@ input {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 8px;
-  align-items: end;
+  align-items: start;
 }
 .field-row .btn {
   height: 48px;
   min-width: 96px;
+  margin-top: 19px; /* line up with the input under its label */
+}
+.field-row-error {
+  grid-column: 1 / -1;
+  margin-top: -14px;
 }
 .answer-sep {
   height: 1px;

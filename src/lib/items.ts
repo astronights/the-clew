@@ -24,7 +24,7 @@ export const ITEM_NOUN: Record<Domain, string> = { numbers: 'number', sequences:
 /** Example rule guesses for the text box. None of them is a real rule. */
 export const RULE_EXAMPLE: Record<Domain, string> = {
   numbers: 'e.g. it has a 5 in it',
-  sequences: 'e.g. the numbers keep going up',
+  sequences: 'e.g. they keep going up',
   tiles: 'e.g. it has a blue tile',
   words: "e.g. it's the name of an animal",
   chain: 'e.g. Bond films in order',
@@ -170,3 +170,77 @@ export function candidatePool(domain: Domain): Item[] {
   poolCache.set(domain, pool);
   return pool;
 }
+
+const COLOUR_WORDS: Record<string, Colour> = {
+  red: 'R', r: 'R', '🔴': 'R', '🟥': 'R',
+  blue: 'B', b: 'B', '🔵': 'B', '🟦': 'B',
+  green: 'G', g: 'G', '🟢': 'G', '🟩': 'G',
+  yellow: 'Y', y: 'Y', '🟡': 'Y', '🟨': 'Y',
+};
+const SHAPE_WORDS: Record<string, Shape> = {
+  circle: 'circle', circles: 'circle', round: 'circle', dot: 'circle', '●': 'circle', o: 'circle',
+  triangle: 'triangle', triangles: 'triangle', tri: 'triangle', '▲': 'triangle', '△': 'triangle',
+  square: 'square', squares: 'square', box: 'square', '■': 'square', '□': 'square',
+  star: 'star', stars: 'star', '★': 'star', '☆': 'star', '*': 'star',
+};
+
+/** "red star, blue circle" / "🔴★ 🔵●" / "red-star blue-circle" → tiles. */
+function parseTiles(text: string): { item: TileItem | null; error: string | null } {
+  const tokens = [...text.toLowerCase().matchAll(/[a-z]+|\p{Extended_Pictographic}|[●▲△■□★☆*]/gu)].map((m) => m[0]).filter((t) => t !== 'and');
+  const row: Tile[] = [];
+  let colour: Colour | null = null;
+  for (const t of tokens) {
+    if (COLOUR_WORDS[t] && !(t in SHAPE_WORDS)) {
+      if (colour) return { item: null, error: `“${t}” follows another colour. Use colour then shape, like “red star”.` };
+      colour = COLOUR_WORDS[t];
+    } else if (SHAPE_WORDS[t]) {
+      if (!colour) return { item: null, error: 'Give each tile a colour first, like “red star, blue circle”.' };
+      row.push({ c: colour, s: SHAPE_WORDS[t] });
+      colour = null;
+    } else return { item: null, error: `I don't know “${t}”. Colours: red, blue, green, yellow. Shapes: circle, triangle, square, star.` };
+  }
+  if (colour) return { item: null, error: 'The last tile needs a shape, like “red star”.' };
+  if (!row.length) return { item: null, error: null };
+  return { item: row, error: validateItem('tiles', row) };
+}
+
+/**
+ * Read free text as an item of the day's kind. Returns `item: null` with no error
+ * for an empty box, so the button can fall back to "Next".
+ */
+export function parseItem(domain: Domain, text: string): { item: Item | null; error: string | null } {
+  const t = text.trim();
+  if (!t) return { item: null, error: null };
+  switch (domain) {
+    case 'numbers': {
+      const m = t.replace(/[,\s_]/g, '').match(/^\d+$/);
+      if (!m) return { item: null, error: 'Type a whole number, like 35.' };
+      const n = Number(m[0]);
+      return { item: n, error: validateItem('numbers', n) };
+    }
+    case 'sequences': {
+      const nums = t.match(/\d+/g) ?? [];
+      if (nums.length !== 3 || /[a-z]/i.test(t)) return { item: null, error: 'Type three numbers, like 3, 8, 12.' };
+      const s = nums.map(Number) as SequenceItem;
+      return { item: s, error: validateItem('sequences', s) };
+    }
+    case 'tiles':
+      return parseTiles(t);
+    case 'words': {
+      const { word, rejected } = normalizeWord(t);
+      if (rejected.length) return { item: null, error: `Letters only, please. Can't use ${rejected.map((c) => `“${c}”`).join(' ')}.` };
+      return { item: word || null, error: word ? validateItem('words', word) : null };
+    }
+    case 'chain':
+      return { item: t, error: validateItem('chain', t) };
+  }
+}
+
+/** Placeholder for the free-text test box. */
+export const TEST_EXAMPLE: Record<Domain, string> = {
+  numbers: 'e.g. 35',
+  sequences: 'e.g. 3, 8, 12',
+  tiles: 'e.g. red star, blue circle',
+  words: 'e.g. puzzle',
+  chain: 'what comes 5th?',
+};

@@ -43,6 +43,7 @@ export function Play({ rule, storageKey, seed, title, answer, onFinish, renderRe
   const [ruleText, setRuleText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [testError, setTestError] = useState<string | null>(null);
   const [announce, setAnnounce] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
   const finishedRef = useRef(isOver(game));
@@ -63,6 +64,7 @@ export function Play({ rule, storageKey, seed, title, answer, onFinish, renderRe
   const over = isOver(game);
   const last = isLastClue(game);
   const latest = lastTest(game);
+  const typed = fifth.item !== null || fifth.error !== null;
   const fifthRow =
     over && answer
       ? { item: answer, pass: true, label: 'The 5th', key: -1 }
@@ -78,19 +80,21 @@ export function Play({ rule, storageKey, seed, title, answer, onFinish, renderRe
     else if (newest?.kind === 'clue') msg += `Clue ${newest.index + 1}: ${describeItem(rule.domain, newest.item)} ${newest.pass ? 'fits' : "doesn't fit"}.`;
     setAnnounce(msg);
     setError(null);
+    setTestError(null);
     setFeedback(null);
     setGame(next);
   };
 
   const onTest = () => {
-    setError(null);
-    if (!fifth.item) return apply(next(rule, game));
-    if (fifth.error) return setError(fifth.error);
-    const key = itemKey(rule.domain, fifth.item);
+    setTestError(null);
+    if (!fifth.item && !fifth.error) return apply(next(rule, game));
+    if (fifth.error || !fifth.item) return setTestError(fifth.error ?? 'Type something to test.');
+    const item = fifth.item;
+    const key = itemKey(rule.domain, item);
     const seen = game.entries.some((e) => e.kind !== 'guess' && itemKey(rule.domain, e.item) === key);
-    if (seen) return setError("That one's already on the thread. Try a new one.");
-    const pass = rule.predicate(fifth.item);
-    apply(testItem(rule, game, fifth.item), `${describeItem(rule.domain, fifth.item)} ${pass ? 'fits' : "doesn't fit"}. `);
+    if (seen) return setTestError("That one's already on the thread. Try a new one.");
+    const pass = rule.predicate(item);
+    apply(testItem(rule, game, item), `${describeItem(rule.domain, item)} ${pass ? 'fits' : "doesn't fit"}. `);
     setFifth({ item: null, error: null });
     setFifthKey((k) => k + 1);
   };
@@ -145,8 +149,13 @@ export function Play({ rule, storageKey, seed, title, answer, onFinish, renderRe
             >
               <FifthInput domain={rule.domain} resetKey={fifthKey} onChange={setFifth} disabled={busy} />
               <button type="submit" className="btn" disabled={busy}>
-                {fifth.item ? (rule.domain === 'chain' ? 'Guess ›' : 'Test ›') : 'Next ›'}
+                {typed ? (rule.domain === 'chain' ? 'Guess ›' : 'Test ›') : 'Next ›'}
               </button>
+              {testError && (
+                <p className="form-error field-row-error" role="alert">
+                  {testError}
+                </p>
+              )}
             </form>
           ) : (
             <p className="note">Last clue. Name the rule, or give up.</p>
@@ -179,9 +188,9 @@ export function Play({ rule, storageKey, seed, title, answer, onFinish, renderRe
             </button>
           </form>
           {feedback && !error && <p className="said">{feedback}</p>}
-          {(error || fifth.error) && (
+          {error && (
             <p className="form-error" role="alert">
-              {error ?? fifth.error}
+              {error}
             </p>
           )}
           <p className="note">{last ? 'One last guess at the rule.' : 'Next, a test or a wrong rule opens the next clue. Only the rule is scored.'}</p>
