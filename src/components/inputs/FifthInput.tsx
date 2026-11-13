@@ -29,7 +29,7 @@ function Field({ domain, onChange, disabled }: Omit<Props, 'resetKey'>) {
   return (
     <div className="field">
       <label className="field-label" htmlFor="test-input">
-        {domain === 'chain' ? 'Guess the 5th (optional)' : 'Test anything (optional)'}
+        {domain === 'chain' ? 'Guess what comes next' : 'Guess something that fits'}
       </label>
       <input
         id="test-input"

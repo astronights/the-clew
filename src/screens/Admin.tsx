@@ -191,9 +191,15 @@ function DayCard({ no, isToday, stored, busy, token, onGenerate, onAct }: CardPr
       {p && !editing && (
         <div className="day-body">
           <ol className="day-clues">
-            {p.clues.map((c, i) => (
-              <li key={i}>{c}</li>
-            ))}
+            {p.clues.map((c, i) => {
+              const alt = (p.clueAnswers?.[i] ?? []).filter((x) => x !== c);
+              return (
+                <li key={i}>
+                  {c}
+                  {alt.length > 0 && <span className="note"> · guess: {alt.join(', ')}</span>}
+                </li>
+              );
+            })}
             <li className="is-answer">
               {p.answer}
               {p.acceptedAnswers.length > 1 && <span className="note"> · also {p.acceptedAnswers.filter((a) => a !== p.answer).join(', ')}</span>}

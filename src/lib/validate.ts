@@ -44,7 +44,8 @@ export function validateRule(rule: Rule): RuleReport {
     keys.add(k);
   });
   const passes = rule.clues.filter((c) => c.pass).length;
-  if (passes < 2 || passes > 3) errors.push(`${passes} passing clues, expected 2–3`);
+  const [lo, hi] = [Math.ceil(CLUE_COUNT / 2), CLUE_COUNT - 1];
+  if (passes < lo || passes > hi) errors.push(`${passes} passing clues, expected ${lo}–${hi}`);
   if (!rule.clues[0].pass) errors.push('clue 1 should pass');
   if (errors.length) return { id: rule.id, passRate: rate, errors };
   const trace = eliminationTrace(rule);

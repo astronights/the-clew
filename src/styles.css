@@ -303,6 +303,18 @@ input {
   margin: 0;
   color: var(--thread);
 }
+.guess-mark.is-right {
+  color: var(--right);
+}
+.guess-mark.is-wrong {
+  color: var(--thread);
+}
+.tag.guess-right {
+  box-shadow: inset 3px 0 0 var(--right);
+}
+.tag.guess-wrong {
+  box-shadow: inset 3px 0 0 var(--thread);
+}
 .tag.is-locked {
   border-style: dashed;
   border-color: var(--line);
@@ -614,11 +626,11 @@ input {
   padding: 0;
   margin: 0 0 12px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 6px;
 }
 .trail-step {
-  padding: 8px 4px;
+  padding: 8px 2px;
   border: 1.5px solid var(--ink);
   border-radius: 4px;
   text-align: center;

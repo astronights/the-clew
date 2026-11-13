@@ -1,11 +1,13 @@
 import { useRef, type CSSProperties, type ReactNode } from 'react';
-import type { Domain, Item, Rule } from '../rules/types';
-import { CLUE_COUNT } from '../lib/game';
+import type { Domain, Rule } from '../rules/types';
+import { CLUE_COUNT, type Entry } from '../lib/game';
+import { describeItem } from '../lib/items';
 import { ItemView, VerdictBadge } from './ItemView';
 
-const ORDINAL = ['1st', '2nd', '3rd', '4th'];
+const ORDINAL = ['1st', '2nd', '3rd', '4th', '5th'];
+type Guess = Extract<Entry, { kind: 'test' }>;
 
-function Tag({ children, variant = '', label }: { children: ReactNode; variant?: string; label?: string }) {
+function Tag({ children, variant = '', label }: { children: ReactNode; variant?: string; label?: ReactNode }) {
   return (
     <div className={`tag ${variant}`}>
       {label && <span className="tag-label">{label}</span>}
@@ -19,12 +21,12 @@ interface Props {
   rule: Rule;
   revealed: number;
   over: boolean;
-  /** What to show in the 5th row: the latest test, or (after the game) the answer. */
-  fifth: { item: Item; pass: boolean; label: string; key: number } | null;
+  /** The guess that revealed each row. */
+  guesses: Map<number, Guess>;
 }
 
-/** Always five rows: clues 1–4 (revealed or locked) and the 5th. */
-export function Thread({ domain, rule, revealed, over, fifth }: Props) {
+/** Five rows, one per clue. Row 1 starts open; each guess opens the next and is marked ✓/✗ on it. */
+export function Thread({ domain, rule, revealed, over, guesses }: Props) {
   const initial = useRef(revealed);
   const chain = domain === 'chain';
   return (
@@ -32,39 +34,39 @@ export function Thread({ domain, rule, revealed, over, fifth }: Props) {
       {Array.from({ length: CLUE_COUNT }, (_, i) => {
         const clue = rule.clues[i];
         const shown = i < revealed;
+        const guess = guesses.get(i);
         const style = { '--d': i < initial.current ? `${i * 60}ms` : '0ms' } as CSSProperties;
-        if (shown || over)
+        if (!shown && !over)
           return (
-            <li key={i} className={`knot-row ${shown ? '' : 'is-unused'}`} style={style}>
-              <Tag
-                variant={`${shown ? '' : 'is-unused'} ${chain || clue.pass ? 'is-pass' : 'is-fail'}`}
-                label={shown ? `Clue ${i + 1}` : `Clue ${i + 1} · unused`}
-              >
-                <ItemView domain={domain} item={clue.item} size={shown ? 'md' : 'sm'} />
-                {chain ? <span className="verdict">{ORDINAL[i]}</span> : <VerdictBadge pass={clue.pass} />}
+            <li key={i} className="knot-row is-locked" aria-label={`Clue ${i + 1}, hidden`}>
+              <Tag variant="is-locked">
+                <span className="locked-text">Clue {i + 1}</span>
               </Tag>
             </li>
           );
+        const label = (
+          <>
+            {shown ? `Clue ${i + 1}` : `Clue ${i + 1} · unused`}
+            {guess && (
+              <span className={`guess-mark ${guess.pass ? 'is-right' : 'is-wrong'}`}>
+                {' · '}your guess {guess.pass ? '✓' : '✗'}
+                <span className="sr-only">
+                  {' '}
+                  ({describeItem(domain, guess.item)} was {guess.pass ? 'right' : 'wrong'})
+                </span>
+              </span>
+            )}
+          </>
+        );
         return (
-          <li key={i} className="knot-row is-locked" aria-label={`Clue ${i + 1}, not revealed yet`}>
-            <Tag variant="is-locked">
-              <span className="locked-text">Clue {i + 1}</span>
+          <li key={i} className={`knot-row ${shown ? '' : 'is-unused'}`} style={style}>
+            <Tag variant={`${shown ? '' : 'is-unused'} ${chain || clue.pass ? 'is-pass' : 'is-fail'} ${guess ? (guess.pass ? 'guess-right' : 'guess-wrong') : ''}`} label={label}>
+              <ItemView domain={domain} item={clue.item} size={shown ? 'md' : 'sm'} />
+              {chain ? <span className="verdict">{ORDINAL[i]}</span> : <VerdictBadge pass={clue.pass} />}
             </Tag>
           </li>
         );
       })}
-      <li className="knot-row is-mine" key={`fifth-${fifth?.key ?? 'empty'}`} aria-live="polite">
-        {fifth ? (
-          <Tag variant={`is-mine ${fifth.pass ? 'is-pass' : 'is-fail'}`} label={fifth.label}>
-            <ItemView domain={domain} item={fifth.item} />
-            <VerdictBadge pass={fifth.pass} chain={chain} />
-          </Tag>
-        ) : (
-          <Tag variant="is-mine is-empty" label="5th">
-            <span className="locked-text">?</span>
-          </Tag>
-        )}
-      </li>
     </ol>
   );
 }

@@ -2,19 +2,19 @@
 
 A mobile-first daily deduction puzzle. One secret rule per day, the same for everyone (new rule at 00:00 UTC). Clues hang on a thread; work out the rule in as few as you can.
 
-- **Clue 1** is shown: an item marked ✓ fits or ✗ doesn't fit the rule.
-- The thread always has 5 rows: clues 1–4 and a 5th row. **Next ›** opens the next clue. If you've typed something
-  in the free-text test box first ("35", "3, 8, 12", "red star, blue circle", "Café", any answer on sequence days), the button becomes **Test ›**: the 5th row shows your item with ✓/✗ and the next clue opens. Tests aren't
-  scored, and only your latest test is shown.
-- Or **name the rule** in your own words. Right → solved on that clue. Wrong → a short "not it" and the next clue opens. No hints.
-- There are 4 clues. On the last one there's nothing left to reveal, so it's one final rule guess (or give up).
-- Score = the clue number you named the rule on (1–4).
+- There are **5 rows**, one per clue. Only row 1 is showing at the start.
+- **Guess** in the free-text box ("35", "3, 8, 12", "red star, blue circle", "Café", any answer on sequence days):
+  the next row opens and is marked **your guess ✓/✗**. On sequence days a guess is right if it's the item that row
+  reveals; on rule days, if it fits the rule. Empty box = **Next ›**, which just opens the next row. Guesses aren't scored.
+- **Name the rule** in your own words at any time. Right → solved on that clue. Wrong → a short "not it" and the next row opens. No hints.
+- On the last row there's nothing left to open: one final rule guess, or give up.
+- Score = the clue number you named the rule on (1–5).
 
 Share text:
 
 ```
 🧶 The Clew #42
-Untangled it on clue 3 of 4 🎉
+Untangled it on clue 3 of 5 🎉
 🔍 ❌ ✅
 theclew.fyi
 ```
@@ -59,26 +59,26 @@ tests/                Vitest suites
 
 ## Rules
 
-Each rule is `{ id, domain, predicate, description, acceptedPhrasings[], decoyRuleIds[], clues[4] }`.
+Each rule is `{ id, domain, predicate, description, acceptedPhrasings[], decoyRuleIds[], clues[5] }`.
 
 - 40 playable rules (10 per domain) live in `src/rules/{numbers,sequences,tiles,words}.ts`.
 - **Decoys** are near-miss rules (e.g. *prime*, *palindrome*, *strictly increasing*). They can be other playable rules or decoy-only predicates in the same files. Each rule lists 6.
-- **Clues** (`src/rules/clues.ts`) are chosen so that every clue removes at least one decoy that was still possible, early clues remove as few as possible (vague) and later ones more (revealing), and all decoys are gone after clue 4. They have 2–3 ✅ and open with a ✅.
+- **Clues** (`src/rules/clues.ts`) are chosen so that every clue removes at least one decoy that was still possible, early clues remove as few as possible (vague) and later ones more (revealing), and all decoys are gone after clue 5. They have 3–4 ✅ and open with a ✅.
 
 Example rules and their clues:
 
 | Rule | Description | Clues |
 | --- | --- | --- |
-| `num-odd-digit-sum` | The digits add up to an odd number. | 375 ✅ · 884 ❌ · 151 ✅ · 347 ❌ |
-| `num-contains-7` | The number contains the digit 7. | 739 ✅ · 795 ✅ · 3 ❌ · 227 ✅ |
-| `num-last-gt-first` | The last digit is bigger than the first digit. | 18 ✅ · 472 ❌ · 248 ✅ · 436 ✅ |
-| `seq-middle-largest` | The middle number is the largest. | (5, 20, 9) ✅ · (7, 20, 4) ✅ · (11, 13, 7) ✅ · (13, 17, 17) ❌ |
-| `seq-alternating-parity` | The numbers alternate between odd and even. | (20, 9, 16) ✅ · (20, 3, 8) ✅ · (16, 13, 13) ❌ · (7, 6, 10) ❌ |
-| `seq-sum-gt-30` | The three numbers add up to more than 30. | (18, 10, 20) ✅ · (14, 3, 6) ❌ · (20, 2, 16) ✅ · (10, 13, 12) ✅ |
-| `tile-no-adjacent-colour` | No two neighbouring tiles share a colour. | 🟢★ 🔴▲ 🔵● 🟡★ ✅ · 🟢■ 🟢■ ❌ · 🟡■ 🔵■ 🔴▲ 🟡★ ✅ · 🔴▲ 🟡▲ 🔴● 🔴● 🔴★ ❌ |
-| `tile-first-last-same-shape` | The first and last tiles are the same shape. | 🟢● 🟢● ✅ · 🟢● 🟡▲ 🟡● 🟢● 🔴▲ ❌ · 🔴▲ 🔵● 🔴● 🔴★ ❌ · 🟢■ 🟡■ 🔴★ 🟡■ ✅ |
-| `word-double-letter` | The word has a double letter. | COOKIE ✅ · FIDDLE ✅ · SILVER ❌ · ENGINE ❌ |
-| `word-starts-two-consonants` | The word starts with two consonants. | BRAVE ✅ · ZIPPER ❌ · TUMBLE ❌ · THROW ✅ |
+| `num-odd-digit-sum` | The digits add up to an odd number. | 375 ✅ · 779 ✅ · 999 ✅ · 435 ❌ · 716 ❌ |
+| `num-contains-7` | The number contains the digit 7. | 739 ✅ · 795 ✅ · 713 ✅ · 19 ❌ · 37 ✅ |
+| `num-last-gt-first` | The last digit is bigger than the first digit. | 18 ✅ · 472 ❌ · 589 ✅ · 124 ✅ · 648 ✅ |
+| `seq-middle-largest` | The middle number is the largest. | (6, 18, 12) ✅ · (9, 6, 1) ❌ · (9, 19, 9) ✅ · (4, 20, 4) ✅ · (3, 18, 20) ❌ |
+| `seq-alternating-parity` | The numbers alternate between odd and even. | (20, 9, 16) ✅ · (20, 3, 8) ✅ · (16, 13, 13) ❌ · (15, 10, 1) ✅ · (7, 12, 7) ✅ |
+| `seq-sum-gt-30` | The three numbers add up to more than 30. | (18, 10, 20) ✅ · (14, 3, 6) ❌ · (20, 19, 19) ✅ · (18, 9, 13) ✅ · (5, 16, 1) ❌ |
+| `tile-no-adjacent-colour` | No two neighbouring tiles share a colour. | 🟢★ 🔴▲ 🔵● 🟡★ ✅ · 🟢■ 🔴■ 🟡■ 🔵★ ✅ · 🟡■ 🔵■ 🔴▲ 🟡★ ✅ · 🔴▲ 🟢● 🟢▲ ❌ · 🟡★ 🟡● 🔵● 🔴★ ❌ |
+| `tile-first-last-same-shape` | The first and last tiles are the same shape. | 🟢● 🟢● ✅ · 🟢● 🟡▲ 🟡● 🟢● 🔴▲ ❌ · 🟡● 🔵● 🟡● ✅ · 🟡★ 🟢● 🟡★ ✅ · 🔴● 🔴▲ 🟢● 🟡★ 🔵● ✅ |
+| `word-double-letter` | The word has a double letter. | COOKIE ✅ · FIDDLE ✅ · PLUCKY ❌ · KITTEN ✅ · CIRCLE ❌ |
+| `word-starts-two-consonants` | The word starts with two consonants. | BRAVE ✅ · ZIPPER ❌ · BRIDGE ✅ · GLAD ✅ · JOLLY ❌ |
 
 `npm run validate-rules -- --verbose` prints which decoys each clue removes.
 
@@ -88,7 +88,7 @@ Example rules and their clues:
 2. `npm run gen-clues -- --write <rule-id>` to pick clues (or write them by hand in `src/rules/clues.ts`).
 3. `npm run validate-rules`. It checks that:
    - every clue's ✅/❌ matches the predicate and the item is valid,
-   - each clue removes at least one decoy that was still alive, and every decoy is gone by clue 4,
+   - each clue removes at least one decoy that was still alive, and every decoy is gone by clue 5,
    - the pass rate is 20–60% over the domain's reference pool (numbers 1–999; all triples of 1–20; 4000 seeded tile rows of 2–5 tiles; the built-in word list).
 
 Rules like *prime* (17%), *palindrome* (11%) or *strictly increasing* (14%) are too rare for that pass-rate band, so they are used as decoys instead.
@@ -106,8 +106,8 @@ If the judge is unreachable, the guess does not cost a clue.
 ## "What comes next" puzzles and the admin desk
 
 Besides the 40 built-in rules, the game can play AI-written puzzles in the style of the *Only Connect*
-Sequences round: four items of a well-known progression (planets, Greek letters, Apollo missions…), and the
-player names the 5th and the rule.
+Sequences round: a well-known progression (planets, Greek letters, Apollo missions…). The writer supplies
+4 clues and the answer, which fill the 5 rows; players guess what comes next and name the rule.
 
 - **Writing:** `/api/admin/generate` sends [`prompts/puzzle-generator.md`](prompts/puzzle-generator.md) to Gemini
   with **Google Search** enabled, so it can check facts and pick up a topical hook from the week's news. Edit the
@@ -160,7 +160,7 @@ npm run build           # typecheck + production build
 Tables (anonymous, no PII):
 
 - `verdict_cache(rule_id, normalized_guess, verdict, hint, created_at)`
-- `daily_results(puzzle_no, solved_on_clue 0–4, count)` — 0 = unsolved; incremented by `POST /api/result`
+- `daily_results(puzzle_no, solved_on_clue 0–5, count)` — 0 = unsolved; incremented by `POST /api/result`
 - `rate_limit(ip_hash, "window", count, updated_at)` — hourly windows; old rows are pruned automatically
 - `puzzles(puzzle_no, puzzle_date, status draft|approved|rejected, data jsonb, errors, note)` — AI puzzles from `/admin`
 

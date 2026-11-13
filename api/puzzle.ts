@@ -16,9 +16,9 @@ export async function GET(req: Request): Promise<Response> {
   try {
     const p = await getPuzzle(sql, no);
     if (!p || p.status !== 'approved') return json({ error: 'none' }, 404);
-    const { connection, acceptedPhrasings, clues, answer, acceptedAnswers, explanation, category, difficulty } = p.data;
+    const { connection, acceptedPhrasings, clues, clueAnswers, answer, acceptedAnswers, explanation, category, difficulty } = p.data;
     return json(
-      { puzzleNo: no, puzzle: { connection, acceptedPhrasings, clues, answer, acceptedAnswers, explanation, category, difficulty } },
+      { puzzleNo: no, puzzle: { connection, acceptedPhrasings, clues, clueAnswers, answer, acceptedAnswers, explanation, category, difficulty } },
       200,
       { 'cache-control': 'public, s-maxage=300, stale-while-revalidate=600' },
     );

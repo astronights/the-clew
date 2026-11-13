@@ -44,6 +44,7 @@ export function coercePuzzle(raw: unknown): ChainPuzzle {
     connection: String(o.connection ?? '').trim(),
     acceptedPhrasings: strs(o.acceptedPhrasings).slice(0, 12),
     clues: strs(o.clues),
+    ...(Array.isArray(o.clueAnswers) ? { clueAnswers: (o.clueAnswers as unknown[]).map(strs) } : {}),
     answer,
     acceptedAnswers: answer && !accepted.includes(answer) ? [answer, ...accepted] : accepted,
     explanation: String(o.explanation ?? '').trim(),

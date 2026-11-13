@@ -10,9 +10,9 @@ describe('share', () => {
     expect(neededMorePercent(counts, 2)).toBe(92);
   });
   it('writes a friendly line that fits the day', () => {
-    expect(shareText(42, 3, ['test', 'miss', 'solved'])).toBe('🧶 The Clew #42\nUntangled it on clue 3 of 4 🎉\n🔍 ❌ ✅\ntheclew.fyi');
+    expect(shareText(42, 3, ['test', 'miss', 'solved'])).toBe('🧶 The Clew #42\nUntangled it on clue 3 of 5 🎉\n🔍 ❌ ✅\ntheclew.fyi');
     expect(shareText(42, 1, ['solved'])).toContain('first clue');
-    expect(shareText(42, 4, ['test', 'miss', 'test', 'solved'])).toContain('phew');
+    expect(shareText(42, 5, ['test', 'miss', 'test', 'next', 'solved'])).toContain('phew');
     expect(shareText(42, 0, ['test', 'test', 'miss', 'miss'])).toContain('tangled');
   });
 });

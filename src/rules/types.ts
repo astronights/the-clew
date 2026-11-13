@@ -34,8 +34,8 @@ export interface RuleDef {
   predicate: (item: Item) => boolean;
 }
 
-/** Clues per daily rule. The player's own 5th item comes after these. */
-export const CLUE_COUNT = 4;
+/** Clues (rows) per daily puzzle. Row 1 is shown; each guess reveals the next. */
+export const CLUE_COUNT = 5;
 
 export interface Clue {
   item: Item;
@@ -44,6 +44,8 @@ export interface Clue {
 
 /** A playable daily rule. */
 export interface Rule extends RuleDef {
+  /** Sequence puzzles only: what a player may type for each row (row i → accepted guesses). */
+  rowAnswers?: string[][];
   acceptedPhrasings: string[];
   decoyRuleIds: string[];
   clues: Clue[];

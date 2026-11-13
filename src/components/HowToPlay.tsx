@@ -26,14 +26,12 @@ export function HowToPlay({ onClose }: { onClose: () => void }) {
           </span>
         </div>
         <ol className="howto-steps">
+          <li>There are {CLUE_COUNT} clues. Only the first is showing.</li>
           <li>
-            <strong>Next</strong> opens the next clue. Type something first and it becomes a <strong>test</strong>: the 5th row tells you if it fits.
+            <strong>Guess</strong> what comes next (or something that fits). The next clue opens and tells you if your guess was right. Leave the box empty to just open the next clue.
           </li>
           <li>
-            <strong>Name the rule</strong> in your own words whenever you think you know it. Right and you're done. Wrong and the next clue opens.
-          </li>
-          <li>
-            You get {CLUE_COUNT} clues. Only the rule is scored: the fewer clues you need, the better.
+            <strong>Name the rule</strong> whenever you think you know it. That's what's scored: the fewer clues you needed, the better.
           </li>
         </ol>
         <p className="note">Mon &amp; Fri numbers · Tue sequences · Wed &amp; Sat tiles · Thu &amp; Sun words · new rule at 00:00 UTC</p>

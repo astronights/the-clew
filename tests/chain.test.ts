@@ -32,7 +32,8 @@ describe('answers', () => {
   it('become a playable rule whose clues all fit and whose 5th is checked by code', () => {
     const r = chainToRule(50, planets);
     expect(r.id).toBe('chain:50');
-    expect(r.clues).toHaveLength(4);
+    expect(r.clues).toHaveLength(5);
+    expect(r.clues[4].item).toBe('Jupiter');
     expect(r.clues.every((c) => c.pass)).toBe(true);
     expect(r.predicate('jupiter')).toBe(true);
     expect(r.predicate('Saturn')).toBe(false);
@@ -87,5 +88,23 @@ describe('admin auth', () => {
     expect(requireAdmin(req('Bearer wrong'))?.status).toBe(401);
     expect(requireAdmin(req())?.status).toBe(401);
     delete process.env.ADMIN_TOKEN;
+  });
+});
+
+import { matchesRow } from '../src/lib/chain';
+
+describe('guessing a disguised row', () => {
+  it('accepts the listed forms', () => {
+    expect(matchesRow(['Beta version', 'Beta'], 'beta', true)).toBe(true);
+    expect(matchesRow(['Beta version', 'Beta'], 'version', true)).toBe(false);
+  });
+  it('without a list, accepts whole words from the clue', () => {
+    expect(matchesRow(['Beta version'], 'Beta', false)).toBe(true);
+    expect(matchesRow(['Beta version'], 'bet', false)).toBe(false);
+    expect(matchesRow(['Delta blues'], 'Gamma', false)).toBe(false);
+  });
+  it('puzzle check requires 4 lists when clueAnswers is given', () => {
+    expect(validateChain({ ...planets, clueAnswers: [['Mercury']] }).join()).toMatch(/clueAnswers/);
+    expect(validateChain({ ...planets, clueAnswers: [['Mercury'], ['Venus'], ['Earth'], ['Mars']] })).toEqual([]);
   });
 });

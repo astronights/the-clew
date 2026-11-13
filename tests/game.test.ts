@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { canTest, CLUE_COUNT, giveUp, guessRule, lastTest, newGame, next, observations, testItem } from '../src/lib/game';
+import { canTest, CLUE_COUNT, giveUp, guessesByRow, guessRule, newGame, next, observations, testItem } from '../src/lib/game';
+import { chainToRule } from '../src/lib/chain';
 import { getRule } from '../src/rules';
 
 const r = getRule('num-contains-7')!;
@@ -9,13 +10,13 @@ describe('game flow', () => {
     const g = newGame(r, 's');
     expect(g.revealed).toBe(1);
     expect(g.entries).toHaveLength(1);
-    expect(CLUE_COUNT).toBe(4);
+    expect(CLUE_COUNT).toBe(5);
   });
   it('testing an item pins it with its verdict and reveals the next clue', () => {
     const g = testItem(r, newGame(r, 's'), 70);
     expect(g.revealed).toBe(2);
     expect(g.entries.map((e) => e.kind)).toEqual(['clue', 'test', 'clue']);
-    expect(g.entries[1]).toMatchObject({ kind: 'test', item: 70, pass: true });
+    expect(g.entries[1]).toMatchObject({ kind: 'test', item: 70, pass: true, row: 1 });
     expect(g.outcomes).toEqual(['test']);
     expect(observations(g)).toHaveLength(3);
   });
@@ -23,12 +24,33 @@ describe('game flow', () => {
     const g = next(r, newGame(r, 's'));
     expect(g.revealed).toBe(2);
     expect(g.outcomes).toEqual(['next']);
-    expect(lastTest(g)).toBeNull();
+    expect(guessesByRow(g).size).toBe(0);
   });
-  it('the 5th row shows only the latest test', () => {
+  it('each guess is marked on the row it revealed', () => {
     let g = testItem(r, newGame(r, 's'), 70);
     g = testItem(r, g, 12);
-    expect(lastTest(g)).toMatchObject({ item: 12, pass: false });
+    const byRow = guessesByRow(g);
+    expect(byRow.get(1)).toMatchObject({ item: 70, pass: true });
+    expect(byRow.get(2)).toMatchObject({ item: 12, pass: false });
+  });
+  it('on sequence days a guess is right only if it is the item it reveals', () => {
+    const seq = chainToRule(50, {
+      connection: 'Planets in order from the Sun',
+      acceptedPhrasings: ['planets in order', 'planets from the sun', 'order of the planets'],
+      clues: ['Mercury', 'Venus', 'Earth', 'Mars'],
+      answer: 'Jupiter',
+      acceptedAnswers: ['Jupiter', 'Planet Jupiter'],
+      explanation: '',
+      category: 'Science',
+      difficulty: 1,
+    });
+    let g = testItem(seq, newGame(seq, 's'), 'venus');
+    g = testItem(seq, g, 'Pluto');
+    g = testItem(seq, g, 'Mars');
+    g = testItem(seq, g, 'planet jupiter');
+    const byRow = guessesByRow(g);
+    expect([1, 2, 3, 4].map((i) => byRow.get(i)?.pass)).toEqual([true, false, true, true]);
+    expect(g.revealed).toBe(5);
   });
   it('a right rule solves on the current clue', () => {
     const g = guessRule(r, newGame(r, 's'), 'contains a 7', true);

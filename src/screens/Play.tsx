@@ -5,7 +5,7 @@ import { Thread } from '../components/Thread';
 import { confetti } from '../components/confetti';
 import { judgeRemote, JudgeUnavailable } from '../lib/api';
 import { matchesAnyPhrasing } from '../lib/fuzzy';
-import { canTest, CLUE_COUNT, giveUp, guessRule, isLastClue, isOver, lastTest, newGame, next, testItem, type GameState } from '../lib/game';
+import { canTest, CLUE_COUNT, giveUp, guessesByRow, guessRule, isLastClue, isOver, newGame, next, testItem, type GameState } from '../lib/game';
 import { describeItem, itemKey, RULE_EXAMPLE } from '../lib/items';
 import { load, save } from '../lib/storage';
 
@@ -23,8 +23,6 @@ interface Props {
   seed: string;
   /** Shown top-left, e.g. "No. 45". */
   title: string;
-  /** For "what comes next" puzzles: shown in the 5th row once the game is over. */
-  answer?: string;
   /** Called once when the game finishes. */
   onFinish?: (state: GameState) => void;
   renderResult: (state: GameState) => ReactNode;
@@ -36,7 +34,7 @@ function restore(rule: Rule, key: string, seed: string): GameState {
   return valid ? saved : newGame(rule, seed);
 }
 
-export function Play({ rule, storageKey, seed, title, answer, onFinish, renderResult }: Props) {
+export function Play({ rule, storageKey, seed, title, onFinish, renderResult }: Props) {
   const [game, setGame] = useState<GameState>(() => restore(rule, storageKey, seed));
   const [fifth, setFifth] = useState<FifthValue>({ item: null, error: null });
   const [fifthKey, setFifthKey] = useState(0);
@@ -63,14 +61,7 @@ export function Play({ rule, storageKey, seed, title, answer, onFinish, renderRe
 
   const over = isOver(game);
   const last = isLastClue(game);
-  const latest = lastTest(game);
   const typed = fifth.item !== null || fifth.error !== null;
-  const fifthRow =
-    over && answer
-      ? { item: answer, pass: true, label: 'The 5th', key: -1 }
-      : latest
-        ? { item: latest.item, pass: latest.pass, label: 'Your test', key: game.entries.lastIndexOf(latest) }
-        : null;
 
   const apply = (next: GameState, prefix = '') => {
     const newest = next.entries[next.entries.length - 1];
@@ -92,9 +83,10 @@ export function Play({ rule, storageKey, seed, title, answer, onFinish, renderRe
     const item = fifth.item;
     const key = itemKey(rule.domain, item);
     const seen = game.entries.some((e) => e.kind !== 'guess' && itemKey(rule.domain, e.item) === key);
-    if (seen) return setTestError("That one's already on the thread. Try a new one.");
-    const pass = rule.predicate(item);
-    apply(testItem(rule, game, item), `${describeItem(rule.domain, item)} ${pass ? 'fits' : "doesn't fit"}. `);
+    if (seen && rule.domain !== 'chain') return setTestError("You've already tried that one.");
+    const after = testItem(rule, game, item);
+    const g = guessesByRow(after).get(game.revealed);
+    apply(after, `Your guess ${describeItem(rule.domain, item)} was ${g?.pass ? 'right' : 'wrong'}. `);
     setFifth({ item: null, error: null });
     setFifthKey((k) => k + 1);
   };
@@ -132,7 +124,7 @@ export function Play({ rule, storageKey, seed, title, answer, onFinish, renderRe
       </div>
       {!over && <p className="play-sub">What's the rule? Fewer clues, better score.</p>}
 
-      <Thread domain={rule.domain} rule={rule} revealed={game.revealed} over={over} fifth={fifthRow} />
+      <Thread domain={rule.domain} rule={rule} revealed={game.revealed} over={over} guesses={guessesByRow(game)} />
 
       {over && renderResult(game)}
       <div ref={endRef} />
@@ -193,7 +185,7 @@ export function Play({ rule, storageKey, seed, title, answer, onFinish, renderRe
               {error}
             </p>
           )}
-          <p className="note">{last ? 'One last guess at the rule.' : 'Next, a test or a wrong rule opens the next clue. Only the rule is scored.'}</p>
+          <p className="note">{last ? 'One last guess at the rule.' : 'Each guess or wrong rule opens the next clue. Only the rule is scored.'}</p>
           {last && (
             <button type="button" className="btn btn-link" onClick={() => apply(giveUp(game))} disabled={busy}>
               Give up and show the rule

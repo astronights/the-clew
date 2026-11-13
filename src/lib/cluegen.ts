@@ -6,14 +6,16 @@ import { hashString, rngFor } from './rng';
 
 const T = true;
 const F = false;
-/** Pass/fail shapes for 4 clues: 2–3 ✅ and 1–2 ❌, always opening with a ✅. */
+/** Pass/fail shapes for 5 clues: 3–4 ✅ and 1–2 ❌, always opening with a ✅. */
 export const CLUE_PATTERNS: boolean[][] = [
-  [T, T, F, T],
-  [T, F, T, T],
-  [T, T, T, F],
-  [T, F, T, F],
-  [T, T, F, F],
-  [T, F, F, T],
+  [T, T, F, T, F],
+  [T, F, T, T, F],
+  [T, T, F, T, T],
+  [T, F, T, T, T],
+  [T, T, T, F, T],
+  [T, F, T, F, T],
+  [T, T, F, F, T],
+  [T, T, T, F, F],
 ];
 
 /**

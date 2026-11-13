@@ -1,4 +1,4 @@
-import { CLUE_COUNT, type Rule } from '../rules/types';
+import type { Rule } from '../rules/types';
 import { normalizeAnswer } from './items';
 
 /**
@@ -12,8 +12,13 @@ export interface ChainPuzzle {
   connection: string;
   /** 6–10 ways a player might phrase the rule; used for instant local matching. */
   acceptedPhrasings: string[];
-  /** Exactly CLUE_COUNT items, in order, vaguest first. */
+  /** Exactly CHAIN_CLUES items, in order, vaguest first (the answer is the 5th row). */
   clues: string[];
+  /**
+   * Optional: for each clue, what a player would type as that item when the clue is disguised,
+   * e.g. clue "Beta version" → ["Beta"]. Used to mark "guess what comes next" right or wrong.
+   */
+  clueAnswers?: string[][];
   /** The 5th item. */
   answer: string;
   /** Every spelling of the 5th we accept (must include `answer`). */
@@ -26,6 +31,9 @@ export interface ChainPuzzle {
   topical?: { used: boolean; note?: string };
   sources?: string[];
 }
+
+/** A sequence puzzle is written as 4 clues + the answer, which together fill the 5 rows. */
+export const CHAIN_CLUES = 4;
 
 export type PuzzleStatus = 'draft' | 'approved' | 'rejected';
 
@@ -49,6 +57,19 @@ export function matchesAnswer(p: Pick<ChainPuzzle, 'answer' | 'acceptedAnswers'>
   return !!g && [p.answer, ...p.acceptedAnswers].some((a) => normalizeAnswer(a) === g);
 }
 
+/**
+ * Is `guess` right for a sequence row? It must equal one of the row's accepted forms; for rows
+ * without explicit alternatives, the guess's whole words appearing in the clue also counts
+ * ("Beta" for "Beta version").
+ */
+export function matchesRow(accepted: string[], guess: string, explicit: boolean): boolean {
+  const g = normalizeAnswer(guess);
+  if (!g) return false;
+  if (accepted.some((a) => normalizeAnswer(a) === g)) return true;
+  if (explicit || g.replace(/ /g, '').length < 3) return false;
+  return accepted.some((a) => ` ${normalizeAnswer(a)} `.includes(` ${g} `));
+}
+
 /** Deterministic checks a puzzle must pass before it can be approved. */
 export function validateChain(p: Partial<ChainPuzzle> | null | undefined): string[] {
   const e: string[] = [];
@@ -56,12 +77,16 @@ export function validateChain(p: Partial<ChainPuzzle> | null | undefined): strin
   const str = (v: unknown) => typeof v === 'string' && v.trim().length > 0;
   if (!str(p.connection)) e.push('connection is missing');
   else if (p.connection!.length > 120) e.push('connection is longer than 120 characters');
-  if (!Array.isArray(p.clues) || p.clues.length !== CLUE_COUNT) e.push(`needs exactly ${CLUE_COUNT} clues`);
+  if (!Array.isArray(p.clues) || p.clues.length !== CHAIN_CLUES) e.push(`needs exactly ${CHAIN_CLUES} clues`);
   else {
     if (!p.clues.every(str)) e.push('every clue must be non-empty text');
     if (p.clues.some((c) => String(c).length > 60)) e.push('clues must be 60 characters or fewer');
     const keys = p.clues.map((c) => normalizeAnswer(String(c)));
     if (new Set(keys).size !== keys.length) e.push('clues must all be different');
+  }
+  if (p.clueAnswers !== undefined) {
+    if (!Array.isArray(p.clueAnswers) || p.clueAnswers.length !== CHAIN_CLUES || !p.clueAnswers.every((a) => Array.isArray(a) && a.every(str)))
+      e.push(`clueAnswers must be ${CHAIN_CLUES} lists of text`);
   }
   if (!str(p.answer)) e.push('answer is missing');
   else if (p.answer!.length > 60) e.push('answer must be 60 characters or fewer');
@@ -77,7 +102,7 @@ export function validateChain(p: Partial<ChainPuzzle> | null | undefined): strin
   return e;
 }
 
-/** Turn an approved puzzle into a Rule the game can play. */
+/** Turn an approved puzzle into a Rule the game can play: the 4 clues and the answer are the 5 rows. */
 export function chainToRule(puzzleNo: number, p: ChainPuzzle): Rule {
   return {
     id: chainRuleId(puzzleNo),
@@ -86,6 +111,7 @@ export function chainToRule(puzzleNo: number, p: ChainPuzzle): Rule {
     predicate: (item) => matchesAnswer(p, String(item)),
     acceptedPhrasings: p.acceptedPhrasings,
     decoyRuleIds: [],
-    clues: p.clues.map((c) => ({ item: c, pass: true })),
+    clues: [...p.clues, p.answer].map((c) => ({ item: c, pass: true })),
+    rowAnswers: [...p.clues.map((c, i) => [c, ...(p.clueAnswers?.[i] ?? [])]), [p.answer, ...p.acceptedAnswers]],
   };
 }

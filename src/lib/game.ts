@@ -1,4 +1,5 @@
 import { CLUE_COUNT, type Item, type Rule } from '../rules/types';
+import { matchesRow } from './chain';
 import type { Observation } from './elimination';
 
 /** What happened on each clue, for the result screen and the share text. */
@@ -6,8 +7,11 @@ export type Outcome = 'next' | 'test' | 'miss' | 'solved';
 
 export type Entry =
   | { kind: 'clue'; index: number; item: Item; pass: boolean }
-  /** The player tested their own item: checked by code, then the next clue is shown. */
-  | { kind: 'test'; item: Item; pass: boolean }
+  /**
+   * The player guessed; the next clue (row `row`, 0-based) was revealed with it.
+   * `pass`: on sequence days, did they guess that row's item; on rule days, does their item fit.
+   */
+  | { kind: 'test'; item: Item; pass: boolean; row: number }
   /** The player named the rule (judged). Only this is scored. */
   | { kind: 'guess'; rule: string; correct: boolean };
 
@@ -64,10 +68,20 @@ function advance(rule: Rule, s: GameState, outcome: Outcome): GameState {
   };
 }
 
-/** Test an item: it's pinned with ✓/✗ and the next clue is revealed. Not scored. */
+/** Was this guess right for the row it reveals? Checked by code, never AI. */
+export function guessIsRight(rule: Rule, row: number, item: Item): boolean {
+  if (rule.domain !== 'chain') return rule.predicate(item);
+  // sequence: the guess must be the item that row reveals
+  if (row === CLUE_COUNT - 1) return rule.predicate(item);
+  const accepted = rule.rowAnswers?.[row] ?? [String(rule.clues[row].item)];
+  return matchesRow(accepted, String(item), accepted.length > 1);
+}
+
+/** Guess / test: reveals the next row, marked right or wrong for this guess. Not scored. */
 export function testItem(rule: Rule, s: GameState, item: Item): GameState {
   if (!canTest(s)) return s;
-  const next: GameState = { ...s, entries: [...s.entries, { kind: 'test', item, pass: rule.predicate(item) }] };
+  const row = s.revealed;
+  const next: GameState = { ...s, entries: [...s.entries, { kind: 'test', item, pass: guessIsRight(rule, row, item), row }] };
   return advance(rule, next, 'test');
 }
 
@@ -77,13 +91,11 @@ export function next(rule: Rule, s: GameState): GameState {
   return advance(rule, s, 'next');
 }
 
-/** The player's most recent test, shown in the 5th row. */
-export function lastTest(s: GameState): Extract<Entry, { kind: 'test' }> | null {
-  for (let i = s.entries.length - 1; i >= 0; i--) {
-    const e = s.entries[i];
-    if (e.kind === 'test') return e;
-  }
-  return null;
+/** The guess that revealed each row, by row index. */
+export function guessesByRow(s: GameState): Map<number, Extract<Entry, { kind: 'test' }>> {
+  const m = new Map<number, Extract<Entry, { kind: 'test' }>>();
+  for (const e of s.entries) if (e.kind === 'test') m.set(e.row, e);
+  return m;
 }
 
 /** Name the rule. Right = solved on this clue. Wrong = the next clue (or the end, on the last one). */

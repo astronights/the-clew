@@ -242,5 +242,5 @@ export const TEST_EXAMPLE: Record<Domain, string> = {
   sequences: 'e.g. 3, 8, 12',
   tiles: 'e.g. red star, blue circle',
   words: 'e.g. puzzle',
-  chain: 'what comes 5th?',
+  chain: 'what comes next?',
 };

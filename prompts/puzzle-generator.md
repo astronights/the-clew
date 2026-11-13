@@ -25,8 +25,10 @@ Target difficulty: **{{DIFFICULTY}} out of 5**.
 The puzzle is a **sequence**, in the spirit of the "Sequences" round of the BBC quiz *Only Connect*.
 
 - There is a hidden progression: things that come in a fixed, well-known order.
-- The player sees **clue 1** first. They may reveal **clue 2, 3 and 4** one at a time, at a cost.
-- They must name **the 5th item** (what comes next) and **the rule** (what the sequence is).
+- The board has **5 rows**: your 4 clues, then the answer as the 5th row.
+- The player sees **row 1** first. Each time they guess what comes next, the next row opens and shows whether
+  their guess was right. So players will try to type **the item in each row** before it opens.
+- They score by naming **the rule** (what the sequence is) with as few rows open as possible.
 - Fewer clues = a better score, so the early clues should be genuinely hard and each clue should help a bit more.
 
 In *Only Connect* the classic sequences are things like:
@@ -101,6 +103,7 @@ Reply with **only** a JSON object, no markdown fences, no commentary, in exactly
     "planets going outwards"
   ],
   "clues": ["Mercury", "Venus", "Earth", "Mars"],
+  "clueAnswers": [["Mercury"], ["Venus"], ["Earth"], ["Mars"]],
   "answer": "Jupiter",
   "acceptedAnswers": ["Jupiter"],
   "explanation": "The planets in order from the Sun: after Mars comes Jupiter.",
@@ -115,6 +118,9 @@ Field rules:
 - `acceptedPhrasings`: 6–10 different ways a player might type the rule, from formal to casual, short to long.
   These are used for instant matching, so include the obvious short forms.
 - `clues`: exactly 4 strings, items 1–4 of the sequence in order (plain or disguised, consistently).
+- `clueAnswers`: for each of the 4 clues, what a player would type as that item. For plain clues just repeat the
+  clue; for disguised clues give the underlying item and its common spellings, e.g. clue `"Beta version"` →
+  `["Beta"]`, clue `"Apollo 8"` → `["Apollo 8", "8"]`.
 - `answer`: item 5. `acceptedAnswers`: every acceptable way of writing it, including `answer` itself
   (e.g. `["Jupiter"]`, or `["Queen Elizabeth II", "Elizabeth II", "Elizabeth"]`).
 - `explanation`: 1–2 sentences shown after the game, explaining the sequence and why the answer comes next.
@@ -125,6 +131,7 @@ Field rules:
 ## Before you answer, check
 
 - [ ] There is exactly one fair 5th item, and every way of writing it is in `acceptedAnswers`.
+- [ ] `clueAnswers` has 4 lists, each with what a player would type for that row.
 - [ ] Clues are in the right order and every fact is true (verify with search if unsure).
 - [ ] No clue contains or gives away the answer, and clue 1 is the hardest.
 - [ ] It is not on the avoid list and not offensive or upsetting.
