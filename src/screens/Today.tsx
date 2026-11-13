@@ -51,6 +51,7 @@ export function Today({ puzzleNo }: { puzzleNo: number }) {
       storageKey={storageKey}
       seed={`daily:${puzzleNo}`}
       title={`No. ${puzzleNo}`}
+      answer={chain?.answer}
       onFinish={onFinish}
       renderResult={(g) => (
         <ResultCard

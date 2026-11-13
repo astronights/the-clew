@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canTest, CLUE_COUNT, giveUp, guessRule, newGame, observations, testItem } from '../src/lib/game';
+import { canTest, CLUE_COUNT, giveUp, guessRule, lastTest, newGame, next, observations, testItem } from '../src/lib/game';
 import { getRule } from '../src/rules';
 
 const r = getRule('num-contains-7')!;
@@ -18,6 +18,17 @@ describe('game flow', () => {
     expect(g.entries[1]).toMatchObject({ kind: 'test', item: 70, pass: true });
     expect(g.outcomes).toEqual(['test']);
     expect(observations(g)).toHaveLength(3);
+  });
+  it('next opens the next clue without testing', () => {
+    const g = next(r, newGame(r, 's'));
+    expect(g.revealed).toBe(2);
+    expect(g.outcomes).toEqual(['next']);
+    expect(lastTest(g)).toBeNull();
+  });
+  it('the 5th row shows only the latest test', () => {
+    let g = testItem(r, newGame(r, 's'), 70);
+    g = testItem(r, g, 12);
+    expect(lastTest(g)).toMatchObject({ item: 12, pass: false });
   });
   it('a right rule solves on the current clue', () => {
     const g = guessRule(r, newGame(r, 's'), 'contains a 7', true);

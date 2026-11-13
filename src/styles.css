@@ -296,6 +296,13 @@ input {
 .tag.is-mine {
   border-style: dashed;
 }
+.tag.is-empty .locked-text {
+  font-size: 1.1rem;
+}
+.answer .said {
+  margin: 0;
+  color: var(--thread);
+}
 .tag.is-locked {
   border-style: dashed;
   border-color: var(--line);
@@ -613,6 +620,7 @@ input {
   color: var(--bg);
 }
 .trail-step.is-test,
+.trail-step.is-next,
 .trail-step.is-unused {
   border-style: dashed;
   color: var(--ink-2);

@@ -27,10 +27,10 @@ export function HowToPlay({ onClose }: { onClose: () => void }) {
         </div>
         <ol className="howto-steps">
           <li>
-            <strong>Test an item:</strong> make your own and see if it fits. That shows the next clue.
+            <strong>Next</strong> opens the next clue. Type something first and it becomes a <strong>test</strong>: the 5th row tells you if it fits.
           </li>
           <li>
-            <strong>Name the rule</strong> in your own words whenever you think you know it. Right and you're done. Wrong and the next clue appears.
+            <strong>Name the rule</strong> in your own words whenever you think you know it. Right and you're done. Wrong and the next clue opens.
           </li>
           <li>
             You get {CLUE_COUNT} clues. Only the rule is scored: the fewer clues you need, the better.

@@ -19,7 +19,7 @@ function Countdown() {
   );
 }
 
-const TRAIL_TEXT: Record<Outcome, string> = { test: 'tested', miss: 'wrong rule', solved: 'got it ✓' };
+const TRAIL_TEXT: Record<Outcome, string> = { next: 'next', test: 'tested', miss: 'wrong rule', solved: 'got it ✓' };
 
 interface Props {
   rule: Rule;
@@ -55,13 +55,7 @@ export function ResultCard({ rule, solvedOn, outcomes, puzzleNo, counts, reveal 
       <h2 className="result-head">{solved ? (solvedOn === 1 ? 'First clue. Wow.' : `Untangled on clue ${solvedOn} of ${CLUE_COUNT}.`) : 'Tangled today.'}</h2>
       <p className="eyebrow">The rule</p>
       <p className="result-rule">{rule.description}</p>
-      {reveal && (
-        <>
-          <p className="eyebrow">The 5th</p>
-          <p className="result-rule">{reveal.answer}</p>
-          <p className="result-expl">{reveal.explanation}</p>
-        </>
-      )}
+      {reveal && <p className="result-expl">{reveal.explanation}</p>}
 
       <ol className="trail" aria-label="How each clue went">
         {Array.from({ length: CLUE_COUNT }, (_, i) => {

@@ -5,7 +5,7 @@ import { Thread } from '../components/Thread';
 import { confetti } from '../components/confetti';
 import { judgeRemote, JudgeUnavailable } from '../lib/api';
 import { matchesAnyPhrasing } from '../lib/fuzzy';
-import { canTest, CLUE_COUNT, giveUp, guessRule, isLastClue, isOver, newGame, testItem, type GameState } from '../lib/game';
+import { canTest, CLUE_COUNT, giveUp, guessRule, isLastClue, isOver, lastTest, newGame, next, testItem, type GameState } from '../lib/game';
 import { describeItem, itemKey, RULE_EXAMPLE } from '../lib/items';
 import { load, save } from '../lib/storage';
 
@@ -23,6 +23,8 @@ interface Props {
   seed: string;
   /** Shown top-left, e.g. "No. 45". */
   title: string;
+  /** For "what comes next" puzzles: shown in the 5th row once the game is over. */
+  answer?: string;
   /** Called once when the game finishes. */
   onFinish?: (state: GameState) => void;
   renderResult: (state: GameState) => ReactNode;
@@ -34,7 +36,7 @@ function restore(rule: Rule, key: string, seed: string): GameState {
   return valid ? saved : newGame(rule, seed);
 }
 
-export function Play({ rule, storageKey, seed, title, onFinish, renderResult }: Props) {
+export function Play({ rule, storageKey, seed, title, answer, onFinish, renderResult }: Props) {
   const [game, setGame] = useState<GameState>(() => restore(rule, storageKey, seed));
   const [fifth, setFifth] = useState<FifthValue>({ item: null, error: null });
   const [fifthKey, setFifthKey] = useState(0);
@@ -42,6 +44,7 @@ export function Play({ rule, storageKey, seed, title, onFinish, renderResult }: 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [announce, setAnnounce] = useState('');
+  const [feedback, setFeedback] = useState<string | null>(null);
   const finishedRef = useRef(isOver(game));
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -59,6 +62,13 @@ export function Play({ rule, storageKey, seed, title, onFinish, renderResult }: 
 
   const over = isOver(game);
   const last = isLastClue(game);
+  const latest = lastTest(game);
+  const fifthRow =
+    over && answer
+      ? { item: answer, pass: true, label: 'The 5th', key: -1 }
+      : latest
+        ? { item: latest.item, pass: latest.pass, label: 'Your test', key: game.entries.lastIndexOf(latest) }
+        : null;
 
   const apply = (next: GameState, prefix = '') => {
     const newest = next.entries[next.entries.length - 1];
@@ -68,12 +78,13 @@ export function Play({ rule, storageKey, seed, title, onFinish, renderResult }: 
     else if (newest?.kind === 'clue') msg += `Clue ${newest.index + 1}: ${describeItem(rule.domain, newest.item)} ${newest.pass ? 'fits' : "doesn't fit"}.`;
     setAnnounce(msg);
     setError(null);
+    setFeedback(null);
     setGame(next);
   };
 
   const onTest = () => {
     setError(null);
-    if (!fifth.item) return setError(rule.domain === 'chain' ? 'Type your guess for the 5th first.' : 'Add an item to test first.');
+    if (!fifth.item) return apply(next(rule, game));
     if (fifth.error) return setError(fifth.error);
     const key = itemKey(rule.domain, fifth.item);
     const seen = game.entries.some((e) => e.kind !== 'guess' && itemKey(rule.domain, e.item) === key);
@@ -100,6 +111,7 @@ export function Play({ rule, storageKey, seed, title, onFinish, renderResult }: 
       setBusy(false);
     }
     apply(guessRule(rule, game, guess, correct), correct ? '' : 'Not it. ');
+    if (!correct) setFeedback(`“${guess}” · not it.`);
   };
 
   return (
@@ -116,7 +128,7 @@ export function Play({ rule, storageKey, seed, title, onFinish, renderResult }: 
       </div>
       {!over && <p className="play-sub">What's the rule? Fewer clues, better score.</p>}
 
-      <Thread entries={game.entries} domain={rule.domain} rule={rule} revealed={game.revealed} over={over} />
+      <Thread domain={rule.domain} rule={rule} revealed={game.revealed} over={over} fifth={fifthRow} />
 
       {over && renderResult(game)}
       <div ref={endRef} />
@@ -133,11 +145,11 @@ export function Play({ rule, storageKey, seed, title, onFinish, renderResult }: 
             >
               <FifthInput domain={rule.domain} resetKey={fifthKey} onChange={setFifth} disabled={busy} />
               <button type="submit" className="btn" disabled={busy}>
-                {rule.domain === 'chain' ? 'Guess ›' : 'Test ›'}
+                {fifth.item ? (rule.domain === 'chain' ? 'Guess ›' : 'Test ›') : 'Next ›'}
               </button>
             </form>
           ) : (
-            <p className="note">Last clue: no more tests. Name the rule, or give up.</p>
+            <p className="note">Last clue. Name the rule, or give up.</p>
           )}
           <div className="answer-sep" />
           <form
@@ -166,12 +178,13 @@ export function Play({ rule, storageKey, seed, title, onFinish, renderResult }: 
               {busy ? <span className="spin" aria-label="Judging" /> : 'Submit'}
             </button>
           </form>
+          {feedback && !error && <p className="said">{feedback}</p>}
           {(error || fifth.error) && (
             <p className="form-error" role="alert">
               {error ?? fifth.error}
             </p>
           )}
-          <p className="note">{last ? 'One last guess at the rule.' : 'A test or a wrong rule shows the next clue. Only the rule is scored.'}</p>
+          <p className="note">{last ? 'One last guess at the rule.' : 'Next, a test or a wrong rule opens the next clue. Only the rule is scored.'}</p>
           {last && (
             <button type="button" className="btn btn-link" onClick={() => apply(giveUp(game))} disabled={busy}>
               Give up and show the rule

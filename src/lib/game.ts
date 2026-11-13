@@ -2,7 +2,7 @@ import { CLUE_COUNT, type Item, type Rule } from '../rules/types';
 import type { Observation } from './elimination';
 
 /** What happened on each clue, for the result screen and the share text. */
-export type Outcome = 'test' | 'miss' | 'solved';
+export type Outcome = 'next' | 'test' | 'miss' | 'solved';
 
 export type Entry =
   | { kind: 'clue'; index: number; item: Item; pass: boolean }
@@ -69,6 +69,21 @@ export function testItem(rule: Rule, s: GameState, item: Item): GameState {
   if (!canTest(s)) return s;
   const next: GameState = { ...s, entries: [...s.entries, { kind: 'test', item, pass: rule.predicate(item) }] };
   return advance(rule, next, 'test');
+}
+
+/** Open the next clue without testing anything. */
+export function next(rule: Rule, s: GameState): GameState {
+  if (!canTest(s)) return s;
+  return advance(rule, s, 'next');
+}
+
+/** The player's most recent test, shown in the 5th row. */
+export function lastTest(s: GameState): Extract<Entry, { kind: 'test' }> | null {
+  for (let i = s.entries.length - 1; i >= 0; i--) {
+    const e = s.entries[i];
+    if (e.kind === 'test') return e;
+  }
+  return null;
 }
 
 /** Name the rule. Right = solved on this clue. Wrong = the next clue (or the end, on the last one). */

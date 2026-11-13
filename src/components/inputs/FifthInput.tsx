@@ -18,11 +18,11 @@ interface Props {
 }
 
 const LABEL: Record<Domain, string> = {
-  numbers: 'Test a number · does it fit?',
-  sequences: 'Test three numbers · do they fit?',
-  tiles: 'Test a row · does it fit?',
-  words: 'Test a word · does it fit?',
-  chain: 'Guess the 5th · what comes next?',
+  numbers: 'Test a number (optional)',
+  sequences: 'Test three numbers (optional)',
+  tiles: 'Test a row (optional)',
+  words: 'Test a word (optional)',
+  chain: 'Guess the 5th (optional)',
 };
 
 export function FifthInput({ domain, resetKey, onChange, disabled }: Props) {

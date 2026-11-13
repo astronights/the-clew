@@ -3,8 +3,10 @@
 A mobile-first daily deduction puzzle. One secret rule per day, the same for everyone (new rule at 00:00 UTC). Clues hang on a thread; work out the rule in as few as you can.
 
 - **Clue 1** is shown: an item marked ✓ fits or ✗ doesn't fit the rule.
-- At each clue you can **test an item**: make your own, see ✓/✗, and the next clue is revealed. Tests aren't scored, but they use up clues.
-- Or **name the rule** in your own words. Right → solved on that clue. Wrong → the next clue appears. No hints.
+- The thread always has 5 rows: clues 1–4 and a 5th row. **Next ›** opens the next clue. If you've typed an item
+  first, the button becomes **Test ›**: the 5th row shows your item with ✓/✗ and the next clue opens. Tests aren't
+  scored, and only your latest test is shown.
+- Or **name the rule** in your own words. Right → solved on that clue. Wrong → a short "not it" and the next clue opens. No hints.
 - There are 4 clues. On the last one there's nothing left to reveal, so it's one final rule guess (or give up).
 - Score = the clue number you named the rule on (1–4).
 
@@ -17,7 +19,7 @@ Untangled it on clue 3 of 4 🎉
 theclew.fyi
 ```
 
-(one emoji per clue: 🔍 tested an item · ❌ wrong rule · ✅ got it; the line changes with the day, e.g. "Got it on the first clue 🤯", "Totally tangled today 🙈")
+(one emoji per clue: ⏭️ next · 🔍 tested an item · ❌ wrong rule · ✅ got it; the line changes with the day, e.g. "Got it on the first clue 🤯", "Totally tangled today 🙈")
 
 Domains rotate by UTC weekday: Mon & Fri **numbers** (1–999) · Tue **3-number sequences** · Wed & Sat **tile rows** (🔴🔵🟢🟡 × ●▲■★) · Thu & Sun **words**.
 
