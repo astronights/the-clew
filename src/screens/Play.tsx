@@ -8,7 +8,7 @@ import { confetti } from '../components/confetti';
 import { judgeRemote, JudgeUnavailable } from '../lib/api';
 import { matchesAnyPhrasing } from '../lib/fuzzy';
 import { applyVerdict, canGuessItem, giveUp, guessItem, isOver, MAX_CLUES, newGame, submitExam, type GameState } from '../lib/game';
-import { describeItem } from '../lib/items';
+import { describeItem, ITEM_NOUN, RULE_EXAMPLE } from '../lib/items';
 import { load, save } from '../lib/storage';
 
 export const DOMAIN_LABEL: Record<Domain, string> = {
@@ -97,7 +97,7 @@ export function Play({ rule, storageKey, seed, onFinish, renderResult }: Props) 
         <div className="action-bar">
           {canGuessItem(game) && (
             <button className="btn btn-secondary" onClick={() => setSheet('item')}>
-              Test an item
+              Test a {ITEM_NOUN[rule.domain]}
             </button>
           )}
           <button className="btn btn-primary" onClick={() => setSheet('rule')}>
@@ -116,9 +116,12 @@ export function Play({ rule, storageKey, seed, onFinish, renderResult }: Props) 
       </div>
 
       {sheet === 'item' && (
-        <Sheet title="Test an item" onClose={() => setSheet(null)}>
-          <p className="muted">Make something you think passes. You'll see whether it does, then the next clue.</p>
-          <ItemInput domain={rule.domain} onSubmit={onItem} submitLabel="Test it" />
+        <Sheet title={`Test your own ${ITEM_NOUN[rule.domain]}`} onClose={() => setSheet(null)}>
+          <p className="muted">
+            Make any {ITEM_NOUN[rule.domain]} you like and see if it passes the rule. Testing uses up a clue: clue {game.revealed + 1} is revealed
+            straight after.
+          </p>
+          <ItemInput domain={rule.domain} onSubmit={onItem} submitLabel={`Test it · reveals clue ${game.revealed + 1}`} />
         </Sheet>
       )}
       {sheet === 'rule' && (
@@ -171,7 +174,7 @@ function RuleGuess({
       }}
     >
       <p className="muted">
-        Describe the secret rule in your own words. If it's right, you'll prove it on 3 new items.
+        Describe the secret rule in your own words. If it's right, you'll prove it on 3 new {ITEM_NOUN[rule.domain]}s.
         {freeRetry ? ' A "close" answer gets one free retry.' : ''}
       </p>
       <label className="sr-only" htmlFor="rule-input">
@@ -190,7 +193,7 @@ function RuleGuess({
             void submit();
           }
         }}
-        placeholder="e.g. the number contains a 5"
+        placeholder={RULE_EXAMPLE[rule.domain]}
         disabled={busy}
       />
       {error && (

@@ -33,7 +33,8 @@ export function HowToPlay({ onClose }: { onClose: () => void }) {
             </span>
           </li>
           <li>
-            After each clue, either <strong>test an item</strong> of your own, or <strong>name the rule</strong>.
+            After each clue, either <strong>test your own</strong> number, word or row to see if it passes (this reveals the next clue), or{' '}
+            <strong>name the rule</strong>.
           </li>
           <li>If your rule sounds right, prove it: sort 3 new items into passes / fails.</li>
           <li>Fewer clues = better score. You get 5 clues and one final guess.</li>

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Domain, Item, SequenceItem, Tile } from '../../rules/types';
-import { COLOURS, COLOUR_NAMES, MAX_TILES, SHAPES, validateItem, WORD_MAX } from '../../lib/items';
+import { COLOURS, COLOUR_NAMES, MAX_TILES, normalizeWord, SHAPES, validateItem, WORD_MAX } from '../../lib/items';
 import { ItemView, TileGlyph } from '../ItemView';
 import { Keypad } from './Keypad';
 
@@ -150,8 +150,12 @@ function WordInput({ onSubmit, submitLabel }: Omit<Props, 'domain'>) {
   const [v, setV] = useState('');
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => ref.current?.focus(), []);
-  const word = v.trim().toLowerCase();
-  const err = word ? validateItem('words', word) : null;
+  const { word, rejected } = normalizeWord(v);
+  const err = rejected.length
+    ? `Letters only, please. Can't use ${rejected.map((c) => `“${c}”`).join(' ')}.`
+    : word
+      ? validateItem('words', word)
+      : null;
   return (
     <form
       onSubmit={(e) => {
@@ -159,7 +163,9 @@ function WordInput({ onSubmit, submitLabel }: Omit<Props, 'domain'>) {
         if (word && !err) onSubmit(word);
       }}
     >
-      <div className="input-display">{word && !err ? <ItemView domain="words" item={word} size="sm" /> : <span className="placeholder">Type any word</span>}</div>
+      <div className="input-display">
+        {word && !err ? <ItemView domain="words" item={word} size="sm" /> : <span className="placeholder">Type any word. Capitals and accents are fine.</span>}
+      </div>
       <label className="sr-only" htmlFor="word-input">
         Word
       </label>
@@ -168,8 +174,8 @@ function WordInput({ onSubmit, submitLabel }: Omit<Props, 'domain'>) {
         ref={ref}
         className="text-input"
         value={v}
-        maxLength={WORD_MAX}
-        onChange={(e) => setV(e.target.value.replace(/[^a-z]/gi, ''))}
+        maxLength={WORD_MAX + 8}
+        onChange={(e) => setV(e.target.value)}
         autoCapitalize="none"
         autoCorrect="off"
         autoComplete="off"

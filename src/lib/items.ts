@@ -18,6 +18,34 @@ export const NUM_MAX = 999;
 export const WORD_MIN = 2;
 export const WORD_MAX = 12;
 
+/** What one item is called on each kind of day. */
+export const ITEM_NOUN: Record<Domain, string> = { numbers: 'number', sequences: 'sequence', tiles: 'row', words: 'word' };
+
+/** Example rule guesses for the text box. None of them is a real rule. */
+export const RULE_EXAMPLE: Record<Domain, string> = {
+  numbers: 'e.g. it has a 5 in it',
+  sequences: 'e.g. the numbers keep going up',
+  tiles: 'e.g. there is always a blue tile',
+  words: "e.g. it's the name of an animal",
+};
+
+/**
+ * Turns whatever the player typed into a plain a–z word: trims, lowercases,
+ * drops accents (Café → cafe) and ignores spaces, hyphens and apostrophes.
+ * Returns the cleaned word and any characters that can't be used.
+ */
+export function normalizeWord(raw: string): { word: string; rejected: string[] } {
+  const base = raw.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/ß/g, 'ss').replace(/æ/g, 'ae').replace(/œ/g, 'oe');
+  const rejected: string[] = [];
+  let word = '';
+  for (const ch of base) {
+    if (ch >= 'a' && ch <= 'z') word += ch;
+    else if (/[\s'’`\-.]/.test(ch)) continue;
+    else if (!rejected.includes(ch)) rejected.push(ch);
+  }
+  return { word, rejected };
+}
+
 /** Stable string key for an item, used for de-duplication and caching. */
 export function itemKey(domain: Domain, item: Item): string {
   switch (domain) {

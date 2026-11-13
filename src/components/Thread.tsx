@@ -24,7 +24,7 @@ function EntryBody({ entry, domain }: { entry: Entry; domain: Domain }) {
       return (
         <>
           <div className="entry-head">
-            <span className="entry-label">Tested</span>
+            <span className="entry-label">Your test</span>
             <VerdictBadge pass={entry.pass} />
           </div>
           <div className="entry-main">
