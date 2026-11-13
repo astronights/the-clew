@@ -12,7 +12,7 @@ interface Props {
   guesses: Map<number, Guess>;
 }
 
-/** Five rows. Row 1 starts open; each guess opens the next, marked ✓/✗ for that guess. */
+/** Five rows. Row 1 starts open; each guess opens the next, and rows you called correctly get a ✓. */
 export function Thread({ puzzle, revealed, over, guesses }: Props) {
   const initial = useRef(revealed);
   return (
@@ -31,16 +31,14 @@ export function Thread({ puzzle, revealed, over, guesses }: Props) {
           );
         return (
           <li key={i} className={`knot-row ${shown ? '' : 'is-unused'}`} style={style}>
-            <div className={`tag ${shown ? '' : 'is-unused'} ${guess ? (guess.pass ? 'guess-right' : 'guess-wrong') : ''}`}>
+            <div className={`tag ${shown ? '' : 'is-unused'} ${guess?.pass ? 'guess-right' : ''}`}>
               <span className="tag-label">
                 {shown ? `Clue ${i + 1}` : `Clue ${i + 1} · unused`}
-                {guess && <span className="guess-said">{` · you guessed ${guess.item}`}</span>}
               </span>
               <span className={`item-text ${shown ? '' : 'item-sm'}`}>{puzzle.rows[i]}</span>
-              {guess && (
-                <span className={`verdict guess-verdict ${guess.pass ? 'is-right' : 'is-wrong'}`}>
-                  <span aria-hidden="true">{guess.pass ? '✓' : '✗'}</span> {guess.pass ? 'Yes' : 'No'}
-                  <span className="sr-only">, your guess was {guess.pass ? 'right' : 'wrong'}</span>
+              {guess?.pass && (
+                <span className="verdict guess-verdict is-right">
+                  <span aria-hidden="true">✓</span> Called it
                 </span>
               )}
             </div>

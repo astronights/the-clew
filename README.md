@@ -7,7 +7,7 @@ One sequence a day, the same for everyone (new puzzle at 00:00 UTC).
 
 - The board has **5 rows**: five things that come in a fixed order (planets, Greek letters, Bond actors…).
   Only row 1 is showing at the start.
-- **Guess what comes next** in the free-text box. The next row opens and is marked **your guess ✓ / ✗**.
+- **Guess what comes next** in the free-text box. The next row opens, marked **✓ Called it** if you were right (wrong guesses show nothing).
   Leave the box empty and the button says **Next ›**: it just opens the next row. Guesses aren't scored.
 - **Name the rule** (the sequence) in your own words at any time. Right → solved on that row. Wrong → a short
   "not it" and the next row opens. No hints.

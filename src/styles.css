@@ -309,24 +309,14 @@ input {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.guess-said {
-  text-transform: none;
-  letter-spacing: 0.02em;
-}
 .guess-verdict {
   font-size: 0.85rem;
 }
 .guess-verdict.is-right {
   color: var(--right);
 }
-.guess-verdict.is-wrong {
-  color: var(--thread);
-}
 .tag.guess-right {
   box-shadow: inset 3px 0 0 var(--right);
-}
-.tag.guess-wrong {
-  box-shadow: inset 3px 0 0 var(--thread);
 }
 .tag.is-locked {
   border-style: dashed;

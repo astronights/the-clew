@@ -74,7 +74,7 @@ export function Play({ puzzle, storageKey, seed, title, onFinish, renderResult }
     if (guess.error) return setGuessError(guess.error);
     const after = guessNext(puzzle, game, guess.text);
     const right = guessesByRow(after).get(game.revealed)?.pass;
-    apply(after, `Your guess ${guess.text} was ${right ? 'right' : 'wrong'}. `);
+    apply(after, right ? 'You called it! ' : '');
     setGuess({ text: '', error: null });
     setGuessKey((k) => k + 1);
   };

@@ -22,7 +22,7 @@ export function HowToPlay({ onClose }: { onClose: () => void }) {
         <ol className="howto-steps">
           <li>Only the first clue is showing.</li>
           <li>
-            <strong>Guess what comes next.</strong> The next clue opens and shows if you were right. Leave the box empty to just open it.
+            <strong>Guess what comes next.</strong> The next clue opens, with a ✓ if you called it. Leave the box empty to just open it.
           </li>
           <li>
             <strong>Name the rule</strong> whenever you've spotted it, e.g. "the alphabet". That's what's scored: the fewer clues you needed, the
