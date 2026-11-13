@@ -27,11 +27,13 @@ export function HowToPlay({ onClose }: { onClose: () => void }) {
         </div>
         <ol className="howto-steps">
           <li>
-            Work out the rule, then fill in <strong>your 5th</strong> (something you think fits) and <strong>the rule</strong> in your own words.
+            <strong>Test an item:</strong> make your own and see if it fits. That shows the next clue.
           </li>
-          <li>Get the rule right and you're done. Your 5th is your own check: it's pinned on the thread so you can see if it fits.</li>
           <li>
-            A miss, or <strong>Skip</strong>, shows the next clue. You get {CLUE_COUNT} clues. The fewer you need, the better.
+            <strong>Name the rule</strong> in your own words whenever you think you know it. Right and you're done. Wrong and the next clue appears.
+          </li>
+          <li>
+            You get {CLUE_COUNT} clues. Only the rule is scored: the fewer clues you need, the better.
           </li>
         </ol>
         <p className="note">Mon &amp; Fri numbers · Tue sequences · Wed &amp; Sat tiles · Thu &amp; Sun words · new rule at 00:00 UTC</p>

@@ -25,7 +25,7 @@ export const ITEM_NOUN: Record<Domain, string> = { numbers: 'number', sequences:
 export const RULE_EXAMPLE: Record<Domain, string> = {
   numbers: 'e.g. it has a 5 in it',
   sequences: 'e.g. the numbers keep going up',
-  tiles: 'e.g. there is always a blue tile',
+  tiles: 'e.g. it has a blue tile',
   words: "e.g. it's the name of an animal",
 };
 

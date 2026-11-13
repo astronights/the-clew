@@ -5,7 +5,7 @@ import { Thread } from '../components/Thread';
 import { confetti } from '../components/confetti';
 import { judgeRemote, JudgeUnavailable } from '../lib/api';
 import { matchesAnyPhrasing } from '../lib/fuzzy';
-import { CLUE_COUNT, isLastClue, isOver, newGame, skip, submit, type GameState } from '../lib/game';
+import { canTest, CLUE_COUNT, giveUp, guessRule, isLastClue, isOver, newGame, testItem, type GameState } from '../lib/game';
 import { describeItem, itemKey, RULE_EXAMPLE } from '../lib/items';
 import { load, save } from '../lib/storage';
 
@@ -22,15 +22,15 @@ interface Props {
   seed: string;
   /** Shown top-left, e.g. "No. 45". */
   title: string;
-  /** Called once when the game finishes (solvedOn: 1–4, or 0 if unsolved). */
+  /** Called once when the game finishes. */
   onFinish?: (state: GameState) => void;
   renderResult: (state: GameState) => ReactNode;
 }
 
 function restore(rule: Rule, key: string, seed: string): GameState {
   const saved = load<GameState | null>(key, null);
-  if (saved && saved.ruleId === rule.id && saved.seed === seed && Array.isArray(saved.entries) && Array.isArray(saved.outcomes)) return saved;
-  return newGame(rule, seed);
+  const valid = saved && saved.ruleId === rule.id && saved.seed === seed && Array.isArray(saved.entries) && Array.isArray(saved.outcomes);
+  return valid ? saved : newGame(rule, seed);
 }
 
 export function Play({ rule, storageKey, seed, title, onFinish, renderResult }: Props) {
@@ -59,23 +59,34 @@ export function Play({ rule, storageKey, seed, title, onFinish, renderResult }: 
   const over = isOver(game);
   const last = isLastClue(game);
 
-  const apply = (next: GameState) => {
+  const apply = (next: GameState, prefix = '') => {
     const newest = next.entries[next.entries.length - 1];
-    if (next.status === 'solved') setAnnounce(`That's it! Solved on clue ${next.solvedOn}.`);
-    else if (next.status === 'failed') setAnnounce(`Out of clues. The rule was: ${rule.description}`);
-    else if (newest?.kind === 'clue') setAnnounce(`Clue ${newest.index + 1}: ${describeItem(rule.domain, newest.item)} ${newest.pass ? 'fits' : "doesn't fit"}.`);
+    let msg = prefix;
+    if (next.status === 'solved') msg += `That's it! Solved on clue ${next.solvedOn}.`;
+    else if (next.status === 'failed') msg += `The rule was: ${rule.description}`;
+    else if (newest?.kind === 'clue') msg += `Clue ${newest.index + 1}: ${describeItem(rule.domain, newest.item)} ${newest.pass ? 'fits' : "doesn't fit"}.`;
+    setAnnounce(msg);
+    setError(null);
     setGame(next);
   };
 
-  const onSubmit = async () => {
+  const onTest = () => {
+    setError(null);
+    if (!fifth.item) return setError('Add an item to test first.');
+    if (fifth.error) return setError(fifth.error);
+    const key = itemKey(rule.domain, fifth.item);
+    const seen = game.entries.some((e) => e.kind !== 'guess' && itemKey(rule.domain, e.item) === key);
+    if (seen) return setError("That one's already on the thread. Try a new one.");
+    const pass = rule.predicate(fifth.item);
+    apply(testItem(rule, game, fifth.item), `${describeItem(rule.domain, fifth.item)} ${pass ? 'fits' : "doesn't fit"}. `);
+    setFifth({ item: null, error: null });
+    setFifthKey((k) => k + 1);
+  };
+
+  const onGuess = async () => {
     setError(null);
     const guess = ruleText.trim();
-    if (!fifth.item) return setError('Add your 5th first.');
-    if (fifth.error) return setError(fifth.error);
     if (guess.length < 3) return setError('Describe the rule in a few words.');
-    const key = itemKey(rule.domain, fifth.item);
-    if (game.entries.some((e) => itemKey(rule.domain, e.item) === key)) return setError("That one's already on the thread. Try a new 5th.");
-
     let correct = matchesAnyPhrasing(guess, rule.acceptedPhrasings);
     if (!correct) {
       setBusy(true);
@@ -87,11 +98,7 @@ export function Play({ rule, storageKey, seed, title, onFinish, renderResult }: 
       }
       setBusy(false);
     }
-    const pass = rule.predicate(fifth.item);
-    apply(submit(rule, game, fifth.item, guess, correct));
-    if (!correct) setAnnounce(`Your 5th ${pass ? 'fits' : "doesn't fit"}. The rule isn't it.`);
-    setFifth({ item: null, error: null });
-    setFifthKey((k) => k + 1);
+    apply(guessRule(rule, game, guess, correct), correct ? '' : 'Not it. ');
   };
 
   return (
@@ -114,52 +121,62 @@ export function Play({ rule, storageKey, seed, title, onFinish, renderResult }: 
       <div ref={endRef} />
 
       {!over && (
-        <form
-          className="answer"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void onSubmit();
-          }}
-        >
-          <FifthInput domain={rule.domain} resetKey={fifthKey} onChange={setFifth} disabled={busy} />
-          <div className="field">
-            <label className="field-label" htmlFor="rule-input">
-              The rule · in your words
-            </label>
-            <input
-              id="rule-input"
-              className="input"
-              value={ruleText}
-              maxLength={200}
-              autoComplete="off"
-              placeholder={RULE_EXAMPLE[rule.domain]}
-              onChange={(e) => setRuleText(e.target.value)}
-              disabled={busy}
-            />
-          </div>
+        <div className="answer">
+          {canTest(game) ? (
+            <form
+              className="field-row"
+              onSubmit={(e) => {
+                e.preventDefault();
+                onTest();
+              }}
+            >
+              <FifthInput domain={rule.domain} resetKey={fifthKey} onChange={setFifth} disabled={busy} />
+              <button type="submit" className="btn" disabled={busy}>
+                Test ›
+              </button>
+            </form>
+          ) : (
+            <p className="note">Last clue: no more tests. Name the rule, or give up.</p>
+          )}
+          <div className="answer-sep" />
+          <form
+            className="field-row"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void onGuess();
+            }}
+          >
+            <div className="field">
+              <label className="field-label" htmlFor="rule-input">
+                The rule · in your words
+              </label>
+              <input
+                id="rule-input"
+                className="input"
+                value={ruleText}
+                maxLength={200}
+                autoComplete="off"
+                placeholder={RULE_EXAMPLE[rule.domain]}
+                onChange={(e) => setRuleText(e.target.value)}
+                disabled={busy}
+              />
+            </div>
+            <button type="submit" className="btn btn-primary" disabled={busy}>
+              {busy ? <span className="spin" aria-label="Judging" /> : 'Submit'}
+            </button>
+          </form>
           {(error || fifth.error) && (
             <p className="form-error" role="alert">
               {error ?? fifth.error}
             </p>
           )}
-          <div className="btn-row">
-            <button type="button" className="btn" onClick={() => apply(skip(rule, game))} disabled={busy}>
-              {last ? 'Give up' : 'Skip ›'}
+          <p className="note">{last ? 'One last guess at the rule.' : 'A test or a wrong rule shows the next clue. Only the rule is scored.'}</p>
+          {last && (
+            <button type="button" className="btn btn-link" onClick={() => apply(giveUp(game))} disabled={busy}>
+              Give up and show the rule
             </button>
-            <button type="submit" className="btn btn-primary" disabled={busy}>
-              {busy ? (
-                <>
-                  <span className="spin" aria-hidden="true" /> Judging…
-                </>
-              ) : last ? (
-                'Final answer'
-              ) : (
-                'Submit'
-              )}
-            </button>
-          </div>
-          <p className="note">{last ? 'Last clue. One more go.' : 'A miss or a skip shows the next clue.'}</p>
-        </form>
+          )}
+        </div>
       )}
 
       <div className="sr-only" aria-live="polite">

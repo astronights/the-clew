@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CLUE_COUNT, isLastClue, newGame, observations, skip, submit } from '../src/lib/game';
+import { canTest, CLUE_COUNT, giveUp, guessRule, newGame, observations, testItem } from '../src/lib/game';
 import { getRule } from '../src/rules';
 
 const r = getRule('num-contains-7')!;
@@ -11,47 +11,47 @@ describe('game flow', () => {
     expect(g.entries).toHaveLength(1);
     expect(CLUE_COUNT).toBe(4);
   });
-  it('a right rule solves on the current clue, whatever the 5th did', () => {
-    const g = submit(r, newGame(r, 's'), 12, 'contains a 7', true);
+  it('testing an item pins it with its verdict and reveals the next clue', () => {
+    const g = testItem(r, newGame(r, 's'), 70);
+    expect(g.revealed).toBe(2);
+    expect(g.entries.map((e) => e.kind)).toEqual(['clue', 'test', 'clue']);
+    expect(g.entries[1]).toMatchObject({ kind: 'test', item: 70, pass: true });
+    expect(g.outcomes).toEqual(['test']);
+    expect(observations(g)).toHaveLength(3);
+  });
+  it('a right rule solves on the current clue', () => {
+    const g = guessRule(r, newGame(r, 's'), 'contains a 7', true);
     expect(g.status).toBe('solved');
     expect(g.solvedOn).toBe(1);
     expect(g.outcomes).toEqual(['solved']);
-    const pinned = g.entries[1];
-    expect(pinned.kind).toBe('attempt');
-    expect(pinned.pass).toBe(false); // 12 has no 7: pinned as "doesn't fit"
   });
-  it('a wrong rule pins the 5th and reveals the next clue', () => {
-    const g = submit(r, newGame(r, 's'), 70, 'is odd', false);
+  it('a wrong rule also reveals the next clue', () => {
+    const g = guessRule(r, newGame(r, 's'), 'is odd', false);
     expect(g.status).toBe('playing');
     expect(g.revealed).toBe(2);
-    expect(g.entries.map((e) => e.kind)).toEqual(['clue', 'attempt', 'clue']);
     expect(g.outcomes).toEqual(['miss']);
-    expect(observations(g)).toHaveLength(3);
+    expect(observations(g)).toHaveLength(2); // rule guesses aren't items
   });
-  it('skip reveals the next clue without guessing', () => {
-    const g = skip(r, newGame(r, 's'));
-    expect(g.revealed).toBe(2);
-    expect(g.outcomes).toEqual(['skip']);
-  });
-  it('after the last clue a miss or skip ends the game unsolved', () => {
+  it('no testing on the last clue; a wrong rule there ends the game', () => {
     let g = newGame(r, 's');
-    for (let i = 1; i < CLUE_COUNT; i++) g = skip(r, g);
-    expect(isLastClue(g)).toBe(true);
-    const missed = submit(r, g, 7, 'nope', false);
+    for (let i = 1; i < CLUE_COUNT; i++) g = testItem(r, g, 100 + i);
+    expect(canTest(g)).toBe(false);
+    expect(testItem(r, g, 5)).toBe(g);
+    const missed = guessRule(r, g, 'nope', false);
     expect(missed.status).toBe('failed');
     expect(missed.solvedOn).toBe(0);
-    expect(skip(r, g).status).toBe('failed');
+    expect(giveUp(g).status).toBe('failed');
   });
-  it('solving on clue 3 after a miss and a skip', () => {
-    let g = submit(r, newGame(r, 's'), 5, 'odd', false);
-    g = skip(r, g);
-    g = submit(r, g, 77, 'has a seven', true);
+  it('solving on clue 3 after a test and a wrong rule', () => {
+    let g = testItem(r, newGame(r, 's'), 5);
+    g = guessRule(r, g, 'odd', false);
+    g = guessRule(r, g, 'has a seven', true);
     expect(g.solvedOn).toBe(3);
-    expect(g.outcomes).toEqual(['miss', 'skip', 'solved']);
+    expect(g.outcomes).toEqual(['test', 'miss', 'solved']);
   });
   it('ignores input once the game is over', () => {
-    const done = submit(r, newGame(r, 's'), 7, 'has a 7', true);
-    expect(submit(r, done, 8, 'x', false)).toBe(done);
-    expect(skip(r, done)).toBe(done);
+    const done = guessRule(r, newGame(r, 's'), 'has a 7', true);
+    expect(guessRule(r, done, 'x', false)).toBe(done);
+    expect(testItem(r, done, 8)).toBe(done);
   });
 });

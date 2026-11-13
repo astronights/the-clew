@@ -19,7 +19,7 @@ function Countdown() {
   );
 }
 
-const TRAIL_TEXT: Record<Outcome, string> = { miss: 'missed', skip: 'skipped', solved: 'got it ✓' };
+const TRAIL_TEXT: Record<Outcome, string> = { test: 'tested', miss: 'wrong rule', solved: 'got it ✓' };
 
 interface Props {
   rule: Rule;

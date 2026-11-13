@@ -2,12 +2,14 @@ import { CLUE_COUNT, type Item, type Rule } from '../rules/types';
 import type { Observation } from './elimination';
 
 /** What happened on each clue, for the result screen and the share text. */
-export type Outcome = 'miss' | 'skip' | 'solved';
+export type Outcome = 'test' | 'miss' | 'solved';
 
 export type Entry =
   | { kind: 'clue'; index: number; item: Item; pass: boolean }
-  /** One submit: the player's own 5th item (checked by code) and their rule (judged). */
-  | { kind: 'attempt'; item: Item; pass: boolean; rule: string; correct: boolean };
+  /** The player tested their own item: checked by code, then the next clue is shown. */
+  | { kind: 'test'; item: Item; pass: boolean }
+  /** The player named the rule (judged). Only this is scored. */
+  | { kind: 'guess'; rule: string; correct: boolean };
 
 export type Status = 'playing' | 'solved' | 'failed';
 
@@ -39,10 +41,13 @@ export function newGame(rule: Rule, seed: string): GameState {
   };
 }
 
-/** Every item with a known verdict: the clues plus the player's own 5ths. */
+/** Every item with a known verdict: the clues plus the player's tested items. */
 export function observations(state: GameState): Observation[] {
-  return state.entries.map((e) => ({ item: e.item, pass: e.pass }));
+  return state.entries.flatMap((e) => (e.kind === 'guess' ? [] : [{ item: e.item, pass: e.pass }]));
 }
+
+/** Testing needs a next clue to reveal, so it isn't offered on the last clue. */
+export const canTest = (s: GameState) => s.status === 'playing' && s.revealed < CLUE_COUNT;
 
 export const isOver = (s: GameState) => s.status !== 'playing';
 export const isLastClue = (s: GameState) => s.revealed >= CLUE_COUNT;
@@ -59,20 +64,23 @@ function advance(rule: Rule, s: GameState, outcome: Outcome): GameState {
   };
 }
 
-/**
- * Submit the player's 5th item and their rule. The rule decides the result;
- * the 5th is their own test and is pinned on the thread either way.
- */
-export function submit(rule: Rule, s: GameState, item: Item, ruleText: string, correct: boolean): GameState {
+/** Test an item: it's pinned with ✓/✗ and the next clue is revealed. Not scored. */
+export function testItem(rule: Rule, s: GameState, item: Item): GameState {
+  if (!canTest(s)) return s;
+  const next: GameState = { ...s, entries: [...s.entries, { kind: 'test', item, pass: rule.predicate(item) }] };
+  return advance(rule, next, 'test');
+}
+
+/** Name the rule. Right = solved on this clue. Wrong = the next clue (or the end, on the last one). */
+export function guessRule(rule: Rule, s: GameState, text: string, correct: boolean): GameState {
   if (s.status !== 'playing') return s;
-  const attempt: Entry = { kind: 'attempt', item, pass: rule.predicate(item), rule: ruleText, correct };
-  const next: GameState = { ...s, entries: [...s.entries, attempt] };
+  const next: GameState = { ...s, entries: [...s.entries, { kind: 'guess', rule: text, correct }] };
   if (correct) return { ...next, outcomes: [...s.outcomes, 'solved'], status: 'solved', solvedOn: s.revealed };
   return advance(rule, next, 'miss');
 }
 
-/** Reveal the next clue without guessing. On the last clue this gives up. */
-export function skip(rule: Rule, s: GameState): GameState {
+/** Stop and reveal the answer. */
+export function giveUp(s: GameState): GameState {
   if (s.status !== 'playing') return s;
-  return advance(rule, s, 'skip');
+  return { ...s, status: 'failed', solvedOn: 0 };
 }

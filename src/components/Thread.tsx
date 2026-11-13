@@ -25,7 +25,7 @@ export function Thread({ entries, domain, rule, revealed, over }: Props) {
   const initial = useRef(entries.length);
   const pending = Array.from({ length: CLUE_COUNT - revealed }, (_, i) => revealed + i);
   return (
-    <ol className="thread" aria-label="Clues and your guesses">
+    <ol className="thread" aria-label="Clues, your tested items and your guesses">
       {entries.map((e, i) => {
         const style = { '--d': i < initial.current ? `${Math.min(i, 8) * 60}ms` : e.kind === 'clue' && i > 0 ? '350ms' : '0ms' } as CSSProperties;
         if (e.kind === 'clue')
@@ -37,12 +37,17 @@ export function Thread({ entries, domain, rule, revealed, over }: Props) {
               </Tag>
             </li>
           );
+        if (e.kind === 'test')
+          return (
+            <li key={i} className="knot-row is-mine" style={style}>
+              <Tag variant={`is-mine ${e.pass ? 'is-pass' : 'is-fail'}`} label="Your test">
+                <ItemView domain={domain} item={e.item} />
+                <VerdictBadge pass={e.pass} />
+              </Tag>
+            </li>
+          );
         return (
-          <li key={i} className="knot-row is-mine" style={style}>
-            <Tag variant={`is-mine ${e.pass ? 'is-pass' : 'is-fail'}`} label="Your 5th">
-              <ItemView domain={domain} item={e.item} />
-              <VerdictBadge pass={e.pass} />
-            </Tag>
+          <li key={i} className="said-row" style={style}>
             <p className={`said ${e.correct ? 'is-right' : ''}`}>
               You said <q>{e.rule}</q> · {e.correct ? <strong>that's it!</strong> : 'not it.'}
             </p>

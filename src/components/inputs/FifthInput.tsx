@@ -18,10 +18,10 @@ interface Props {
 }
 
 const LABEL: Record<Domain, string> = {
-  numbers: 'Your 5th · a number that fits',
-  sequences: 'Your 5th · three numbers that fit',
-  tiles: 'Your 5th · a row that fits',
-  words: 'Your 5th · a word that fits',
+  numbers: 'Test a number · does it fit?',
+  sequences: 'Test three numbers · do they fit?',
+  tiles: 'Test a row · does it fit?',
+  words: 'Test a word · does it fit?',
 };
 
 export function FifthInput({ domain, resetKey, onChange, disabled }: Props) {
@@ -138,7 +138,7 @@ function TileField({ onChange, disabled }: FieldProps) {
         )}
       </button>
       {open && (
-        <Sheet title={`Build your 5th ${ITEM_NOUN.tiles}`} onClose={() => setOpen(false)}>
+        <Sheet title={`Build a ${ITEM_NOUN.tiles} to test`} onClose={() => setOpen(false)}>
           <TileBuilder
             initial={row}
             onDone={(r) => {

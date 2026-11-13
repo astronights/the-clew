@@ -3,9 +3,9 @@
 A mobile-first daily deduction puzzle. One secret rule per day, the same for everyone (new rule at 00:00 UTC). Clues hang on a thread; work out the rule in as few as you can.
 
 - **Clue 1** is shown: an item marked ✓ fits or ✗ doesn't fit the rule.
-- Fill in **your 5th** (an item you think fits) and **the rule** in your own words, then **Submit**.
-- **Rule right** → solved on that clue. Your 5th is your own check: it's pinned on the thread with ✓/✗ either way and doesn't affect the score.
-- **Rule wrong**, or **Skip** → the next clue appears. No hints. There are 4 clues; after the last one a miss or skip ends the game and reveals the rule.
+- At each clue you can **test an item**: make your own, see ✓/✗, and the next clue is revealed. Tests aren't scored, but they use up clues.
+- Or **name the rule** in your own words. Right → solved on that clue. Wrong → the next clue appears. No hints.
+- There are 4 clues. On the last one there's nothing left to reveal, so it's one final rule guess (or give up).
 - Score = the clue number you named the rule on (1–4).
 
 Share text:
@@ -13,11 +13,11 @@ Share text:
 ```
 🧶 The Clew #42
 Untangled it on clue 3 of 4 🎉
-❌ ⏭️ ✅
+🔍 ❌ ✅
 theclew.fyi
 ```
 
-(one emoji per clue: ❌ wrong rule · ⏭️ skipped · ✅ got it; the line changes with the day, e.g. "Got it on the first clue 🤯", "Totally tangled today 🙈")
+(one emoji per clue: 🔍 tested an item · ❌ wrong rule · ✅ got it; the line changes with the day, e.g. "Got it on the first clue 🤯", "Totally tangled today 🙈")
 
 Domains rotate by UTC weekday: Mon & Fri **numbers** (1–999) · Tue **3-number sequences** · Wed & Sat **tile rows** (🔴🔵🟢🟡 × ●▲■★) · Thu & Sun **words**.
 
@@ -93,9 +93,9 @@ Rules like *prime* (17%), *palindrome* (11%) or *strictly increasing* (14%) are 
 
 1. **Client fuzzy match** (`src/lib/fuzzy.ts`): lowercase, drop punctuation and stopwords, map synonyms and number words, then token overlap against each accepted phrasing ≥ 0.75. Numbers, letters and meaning-flipping words (colours, shapes, odd/even, comparisons, positions, negation) must match exactly, so "multiple of 5" never matches "multiple of 3".
 2. Otherwise **`POST /api/judge`**: rate limit (30/hour per hashed IP) → Neon `verdict_cache` → Gemini with the rule description, predicate source and decoys. The guess is sanitised and wrapped in `<guess>…</guess>` and the model is told to treat it strictly as data. The response is forced to JSON `{verdict: correct|close|wrong, hint}`; the game only counts `correct` as right and shows no hints. The verdict is cached.
-3. **Your 5th** is always checked by the rule's predicate in code, never by the model.
+3. **Tested items** are always checked by the rule's predicate in code, never by the model.
 
-If the judge is unreachable, the submit does not cost a clue.
+If the judge is unreachable, the guess does not cost a clue.
 
 ## Local development
 

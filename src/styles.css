@@ -329,8 +329,13 @@ input {
   text-transform: uppercase;
   color: var(--ink-3);
 }
+.said-row {
+  position: relative;
+  margin: -2px 0 10px;
+  animation: hang 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0ms) both;
+}
 .said {
-  margin: 6px 0 4px;
+  margin: 0;
   font-family: var(--mono);
   font-size: 0.78rem;
   color: var(--ink-2);
@@ -514,6 +519,37 @@ input {
   grid-template-columns: 1fr 2fr;
   gap: 8px;
 }
+/* an input with its own button, e.g. [ your 5th ][ Test ] */
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: end;
+}
+.field-row .btn {
+  height: 48px;
+  min-width: 96px;
+}
+.answer-sep {
+  height: 1px;
+  background: var(--line);
+  margin: 2px 0;
+}
+.btn-link {
+  justify-self: center;
+  height: auto;
+  padding: 2px 6px;
+  border: 0;
+  background: none;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  color: var(--ink-2);
+}
 .btn-block {
   width: 100%;
 }
@@ -572,7 +608,7 @@ input {
   background: var(--ink);
   color: var(--bg);
 }
-.trail-step.is-skip,
+.trail-step.is-test,
 .trail-step.is-unused {
   border-style: dashed;
   color: var(--ink-2);
