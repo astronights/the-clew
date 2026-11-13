@@ -1,13 +1,10 @@
 import { useEffect, useState } from 'react';
 import { HowToPlay } from './components/HowToPlay';
-import { ClewMark } from './components/ClewMark';
 import { load, save } from './lib/storage';
 import { puzzleNumber } from './lib/daily';
-import { Practice } from './screens/Practice';
 import { StatsScreen } from './screens/Stats';
 import { Today } from './screens/Today';
 
-type Tab = 'today' | 'practice' | 'stats';
 type Theme = 'system' | 'light' | 'dark';
 function ThemeIcon({ theme }: { theme: Theme }) {
   const common = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, 'aria-hidden': true };
@@ -34,7 +31,7 @@ function ThemeIcon({ theme }: { theme: Theme }) {
 const NEXT_THEME: Record<Theme, Theme> = { system: 'light', light: 'dark', dark: 'system' };
 
 export function App() {
-  const [tab, setTab] = useState<Tab>('today');
+  const [stats, setStats] = useState(false);
   const [help, setHelp] = useState(() => !load<boolean>('clew:seenHelp', false));
   const [theme, setTheme] = useState<Theme>(() => load<Theme>('clew:theme', 'system'));
   const [today, setToday] = useState(() => puzzleNumber());
@@ -61,12 +58,14 @@ export function App() {
     <div className="app">
       <header className="topbar">
         <h1 className="logo">
-          <ClewMark size={26} className="logo-mark" />
-          <span>
-            The <em>Clew</em>
-          </span>
+          the clew<span className="logo-dot" aria-hidden="true" />
         </h1>
         <div className="topbar-actions">
+          <button className="icon-btn" onClick={() => setStats(true)} aria-label="Your stats">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+              <path d="M5 20V12M12 20V5M19 20v-9" />
+            </svg>
+          </button>
           <button className="icon-btn" onClick={() => setHelp(true)} aria-label="How to play">
             ?
           </button>
@@ -81,20 +80,11 @@ export function App() {
         </div>
       </header>
 
-      <nav className="tabs" aria-label="Screens">
-        {(['today', 'practice', 'stats'] as Tab[]).map((t) => (
-          <button key={t} className={`tab ${tab === t ? 'is-active' : ''}`} aria-current={tab === t ? 'page' : undefined} onClick={() => setTab(t)}>
-            {t === 'today' ? `Today · #${today}` : t === 'practice' ? 'Practice' : 'Stats'}
-          </button>
-        ))}
-      </nav>
-
       <main className="screen">
-        {tab === 'today' && <Today key={today} puzzleNo={today} />}
-        {tab === 'practice' && <Practice today={today} />}
-        {tab === 'stats' && <StatsScreen today={today} />}
+        <Today key={today} puzzleNo={today} />
       </main>
 
+      {stats && <StatsScreen today={today} onClose={() => setStats(false)} />}
       {help && <HowToPlay onClose={closeHelp} />}
     </div>
   );

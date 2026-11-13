@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ResultCard } from '../components/ResultCard';
 import { fetchDistribution, postResult } from '../lib/api';
 import { ruleForPuzzle } from '../lib/daily';
+import type { GameState } from '../lib/game';
 import { load, save } from '../lib/storage';
 import { applyResult, loadStats, saveStats } from '../lib/stats';
 import { Play } from './Play';
@@ -12,7 +13,8 @@ export function Today({ puzzleNo }: { puzzleNo: number }) {
   const [finished, setFinished] = useState(false);
 
   const onFinish = useCallback(
-    async (solvedOn: number) => {
+    async (g: GameState) => {
+      const solvedOn = g.solvedOn ?? 0;
       saveStats(applyResult(loadStats(), puzzleNo, solvedOn));
       const postedKey = `clew:posted:${puzzleNo}`;
       if (!load<boolean>(postedKey, false)) {
@@ -27,7 +29,7 @@ export function Today({ puzzleNo }: { puzzleNo: number }) {
   // already finished earlier today: just fetch the distribution
   useEffect(() => {
     if (finished) return;
-    const saved = load<{ status?: string } | null>(`clew:game:${puzzleNo}`, null);
+    const saved = load<{ status?: string } | null>(`clew:v2:game:${puzzleNo}`, null);
     if (saved?.status === 'solved' || saved?.status === 'failed') {
       setFinished(true);
       void fetchDistribution(puzzleNo).then(setCounts);
@@ -37,10 +39,11 @@ export function Today({ puzzleNo }: { puzzleNo: number }) {
   return (
     <Play
       rule={rule}
-      storageKey={`clew:game:${puzzleNo}`}
+      storageKey={`clew:v2:game:${puzzleNo}`}
       seed={`daily:${puzzleNo}`}
+      title={`No. ${puzzleNo}`}
       onFinish={onFinish}
-      renderResult={(g) => <ResultCard rule={rule} solvedOn={g.solvedOn ?? 0} puzzleNo={puzzleNo} counts={counts} />}
+      renderResult={(g) => <ResultCard rule={rule} solvedOn={g.solvedOn ?? 0} outcomes={g.outcomes} puzzleNo={puzzleNo} counts={counts} />}
     />
   );
 }

@@ -1,4 +1,4 @@
-import type { Verdict } from './game';
+export type Verdict = 'correct' | 'close' | 'wrong';
 
 export interface JudgeResponse {
   verdict: Verdict;

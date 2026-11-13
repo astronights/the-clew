@@ -5,11 +5,15 @@ import { sanitizeGuess, sanitizeHint } from '../api/_lib/gemini';
 import { getRule } from '../src/rules';
 
 describe('share', () => {
-  it('formats the share text', () => {
-    const counts = [10, 5, 3, 40, 30, 12]; // 100 players, 8 solved on ≤2
+  it('computes "needed more clues"', () => {
+    const counts = [10, 5, 3, 40, 42, 0]; // 100 players, 8 solved on ≤2
     expect(neededMorePercent(counts, 2)).toBe(92);
-    expect(shareText(42, 2, counts)).toBe('🧶 The Clew #42 · 🧵🧵⬜⬜⬜\nSolved on clue 2 · 92% needed more\ntheclew.fyi');
-    expect(shareText(42, 0, null)).toBe('🧶 The Clew #42 · 🧵🧵🧵🧵🧵 ✂️\nThe thread snapped\ntheclew.fyi');
+  });
+  it('writes a friendly line that fits the day', () => {
+    expect(shareText(42, 3, ['miss', 'skip', 'solved'])).toBe('🧶 The Clew #42\nUntangled it on clue 3 of 4 🎉\n❌ ⏭️ ✅\ntheclew.fyi');
+    expect(shareText(42, 1, ['solved'])).toContain('first clue');
+    expect(shareText(42, 4, ['miss', 'miss', 'skip', 'solved'])).toContain('phew');
+    expect(shareText(42, 0, ['miss', 'skip', 'miss', 'miss'])).toContain('tangled');
   });
 });
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
+import { CLUE_COUNT } from '../rules/types';
 import { ItemView, VerdictBadge } from './ItemView';
-import { ClewMark } from './ClewMark';
 
 export function HowToPlay({ onClose }: { onClose: () => void }) {
   const btn = useRef<HTMLButtonElement>(null);
@@ -12,38 +12,31 @@ export function HowToPlay({ onClose }: { onClose: () => void }) {
   }, [onClose]);
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal card" role="dialog" aria-modal="true" aria-labelledby="howto-title" onClick={(e) => e.stopPropagation()}>
-        <h2 id="howto-title" className="howto-title">
-          <ClewMark size={30} className="howto-mark" />
-          How to play
-        </h2>
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="howto-title" onClick={(e) => e.stopPropagation()}>
+        <h2 id="howto-title">How to play</h2>
         <p>
-          Every day there's <strong>one secret rule</strong>, the same for everyone. Follow the thread of clues to find it.
+          There's <strong>one secret rule</strong> a day, the same for everyone. Each clue is something that fits the rule or doesn't.
         </p>
+        <div className="howto-example">
+          <span className="howto-pair">
+            <ItemView domain="words" item="cookie" size="sm" /> <VerdictBadge pass />
+          </span>
+          <span className="howto-pair">
+            <ItemView domain="words" item="plucky" size="sm" /> <VerdictBadge pass={false} />
+          </span>
+        </div>
         <ol className="howto-steps">
           <li>
-            Each clue is an item that <strong>passes</strong> or <strong>fails</strong> the rule.
-            <span className="howto-example">
-              <span className="howto-pair">
-                <ItemView domain="numbers" item={47} size="sm" /> <VerdictBadge pass animate={false} />
-              </span>
-              <span className="howto-pair">
-                <ItemView domain="numbers" item={12} size="sm" /> <VerdictBadge pass={false} animate={false} />
-              </span>
-            </span>
+            Work out the rule, then fill in <strong>your 5th</strong> (something you think fits) and <strong>the rule</strong> in your own words.
           </li>
+          <li>Get the rule right and you're done. Your 5th is your own check: it's pinned on the thread so you can see if it fits.</li>
           <li>
-            After each clue, either <strong>test your own</strong> number, word or row to see if it passes (this reveals the next clue), or{' '}
-            <strong>name the rule</strong>.
+            A miss, or <strong>Skip</strong>, shows the next clue. You get {CLUE_COUNT} clues. The fewer you need, the better.
           </li>
-          <li>If your rule sounds right, prove it: sort 3 new items into passes / fails.</li>
-          <li>Fewer clues = better score. You get 5 clues and one final guess.</li>
         </ol>
-        <p className="muted small">
-          Mon &amp; Fri numbers · Tue sequences · Wed &amp; Sat tiles · Thu &amp; Sun words. New rule at 00:00 UTC.
-        </p>
+        <p className="note">Mon &amp; Fri numbers · Tue sequences · Wed &amp; Sat tiles · Thu &amp; Sun words · new rule at 00:00 UTC</p>
         <button ref={btn} className="btn btn-primary btn-block" onClick={onClose}>
-          Start unspooling
+          Let's go
         </button>
       </div>
     </div>

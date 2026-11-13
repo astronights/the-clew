@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dateOfPuzzle, domainOfPuzzle, EPOCH_UTC, msUntilNextPuzzle, pastRules, puzzleNumber, ruleForPuzzle } from '../src/lib/daily';
+import { dateOfPuzzle, domainOfPuzzle, EPOCH_UTC, msUntilNextPuzzle, puzzleNumber, ruleForPuzzle } from '../src/lib/daily';
 import { rulesForDomain } from '../src/rules';
 
 describe('daily picker', () => {
@@ -36,12 +36,6 @@ describe('daily picker', () => {
       }
       for (let i = 1; i < ids.length; i++) expect(ids[i]).not.toBe(ids[i - 1]);
     }
-  });
-  it('past rules exclude today', () => {
-    const past = pastRules(42);
-    expect(past.length).toBeGreaterThan(0);
-    expect(past.some((p) => p.rule.id === ruleForPuzzle(42).id)).toBe(false);
-    expect(past.every((p) => p.puzzleNo < 42)).toBe(true);
   });
   it('dates and countdown', () => {
     expect(dateOfPuzzle(1).getTime()).toBe(EPOCH_UTC);

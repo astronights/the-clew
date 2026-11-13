@@ -29,6 +29,9 @@ export interface RuleDef {
   predicate: (item: Item) => boolean;
 }
 
+/** Clues per daily rule. The player's own 5th item comes after these. */
+export const CLUE_COUNT = 4;
+
 export interface Clue {
   item: Item;
   pass: boolean;

@@ -1,5 +1,5 @@
 import { DEFS, RULES } from '../rules';
-import type { Rule } from '../rules/types';
+import { CLUE_COUNT, type Rule } from '../rules/types';
 import { eliminationTrace } from './elimination';
 import { candidatePool, itemKey, validateItem } from './items';
 
@@ -23,15 +23,15 @@ export function validateRule(rule: Rule): RuleReport {
   if (rate < PASS_RATE_MIN || rate > PASS_RATE_MAX)
     errors.push(`pass rate ${(rate * 100).toFixed(1)}% outside ${PASS_RATE_MIN * 100}–${PASS_RATE_MAX * 100}%`);
   if (!rule.acceptedPhrasings.length) errors.push('no accepted phrasings');
-  if (rule.decoyRuleIds.length < 5) errors.push('needs at least 5 decoys');
+  if (rule.decoyRuleIds.length < CLUE_COUNT) errors.push(`needs at least ${CLUE_COUNT} decoys`);
   for (const id of rule.decoyRuleIds) {
     const d = DEFS.get(id);
     if (!d) errors.push(`unknown decoy ${id}`);
     else if (d.domain !== rule.domain) errors.push(`decoy ${id} is from another domain`);
     else if (id === rule.id) errors.push('rule lists itself as a decoy');
   }
-  if (rule.clues.length !== 5) {
-    errors.push(`has ${rule.clues.length} clues, expected 5`);
+  if (rule.clues.length !== CLUE_COUNT) {
+    errors.push(`has ${rule.clues.length} clues, expected ${CLUE_COUNT}`);
     return { id: rule.id, passRate: rate, errors };
   }
   const keys = new Set<string>();
@@ -44,7 +44,8 @@ export function validateRule(rule: Rule): RuleReport {
     keys.add(k);
   });
   const passes = rule.clues.filter((c) => c.pass).length;
-  if (passes < 3 || passes > 4) errors.push(`${passes} passing clues, expected 3–4`);
+  if (passes < 2 || passes > 3) errors.push(`${passes} passing clues, expected 2–3`);
+  if (!rule.clues[0].pass) errors.push('clue 1 should pass');
   if (errors.length) return { id: rule.id, passRate: rate, errors };
   const trace = eliminationTrace(rule);
   trace.forEach((removed, i) => {
@@ -52,7 +53,7 @@ export function validateRule(rule: Rule): RuleReport {
   });
   const removedAll = new Set(trace.flat());
   const survivors = rule.decoyRuleIds.filter((id) => !removedAll.has(id));
-  if (survivors.length) errors.push(`decoys alive after clue 5: ${survivors.join(', ')}`);
+  if (survivors.length) errors.push(`decoys alive after the last clue: ${survivors.join(', ')}`);
   return { id: rule.id, passRate: rate, errors };
 }
 

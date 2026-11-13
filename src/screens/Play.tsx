@@ -1,216 +1,170 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import type { Domain, Item, Rule } from '../rules/types';
-import { Exam } from '../components/Exam';
-import { ItemInput } from '../components/inputs/ItemInput';
-import { Sheet } from '../components/Sheet';
+import type { Domain, Rule } from '../rules/types';
+import { FifthInput, type FifthValue } from '../components/inputs/FifthInput';
 import { Thread } from '../components/Thread';
 import { confetti } from '../components/confetti';
 import { judgeRemote, JudgeUnavailable } from '../lib/api';
 import { matchesAnyPhrasing } from '../lib/fuzzy';
-import { applyVerdict, canGuessItem, giveUp, guessItem, isOver, MAX_CLUES, newGame, submitExam, type GameState } from '../lib/game';
-import { describeItem, ITEM_NOUN, RULE_EXAMPLE } from '../lib/items';
+import { CLUE_COUNT, isLastClue, isOver, newGame, skip, submit, type GameState } from '../lib/game';
+import { describeItem, itemKey, RULE_EXAMPLE } from '../lib/items';
 import { load, save } from '../lib/storage';
 
 export const DOMAIN_LABEL: Record<Domain, string> = {
-  numbers: 'Numbers 1–999',
-  sequences: 'Three-number sequences',
-  tiles: 'Rows of tiles',
-  words: 'Words',
+  numbers: 'numbers',
+  sequences: 'sequences',
+  tiles: 'tiles',
+  words: 'words',
 };
 
 interface Props {
   rule: Rule;
   storageKey: string;
   seed: string;
-  /** Called once when the game finishes (solvedOn: 1–5, or 0 if unsolved). */
-  onFinish?: (solvedOn: number) => void;
+  /** Shown top-left, e.g. "No. 45". */
+  title: string;
+  /** Called once when the game finishes (solvedOn: 1–4, or 0 if unsolved). */
+  onFinish?: (state: GameState) => void;
   renderResult: (state: GameState) => ReactNode;
 }
 
 function restore(rule: Rule, key: string, seed: string): GameState {
   const saved = load<GameState | null>(key, null);
-  if (saved && saved.ruleId === rule.id && saved.seed === seed && Array.isArray(saved.entries)) return saved;
+  if (saved && saved.ruleId === rule.id && saved.seed === seed && Array.isArray(saved.entries) && Array.isArray(saved.outcomes)) return saved;
   return newGame(rule, seed);
 }
 
-export function Play({ rule, storageKey, seed, onFinish, renderResult }: Props) {
+export function Play({ rule, storageKey, seed, title, onFinish, renderResult }: Props) {
   const [game, setGame] = useState<GameState>(() => restore(rule, storageKey, seed));
-  const [sheet, setSheet] = useState<null | 'item' | 'rule'>(null);
+  const [fifth, setFifth] = useState<FifthValue>({ item: null, error: null });
+  const [fifthKey, setFifthKey] = useState(0);
+  const [ruleText, setRuleText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [announce, setAnnounce] = useState('');
   const finishedRef = useRef(isOver(game));
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => save(storageKey, game), [storageKey, game]);
-
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [game.entries.length, game.status]);
-
   useEffect(() => {
     if (isOver(game) && !finishedRef.current) {
       finishedRef.current = true;
       if (game.status === 'solved') confetti();
-      onFinish?.(game.solvedOn ?? 0);
+      onFinish?.(game);
     }
   }, [game, onFinish]);
 
-  const update = (next: GameState) => {
-    const last = next.entries[next.entries.length - 1];
-    if (next.status === 'solved') setAnnounce(`Solved on clue ${next.solvedOn}!`);
-    else if (next.status === 'failed') setAnnounce(`Unsolved. The rule was: ${rule.description}`);
-    else if (next.status === 'exam') setAnnounce('Correct guess! Now sort three items to prove it.');
-    else if (last?.kind === 'clue') {
-      const prev = next.entries[next.entries.length - 2];
-      const tested = prev?.kind === 'guess' ? `${describeItem(rule.domain, prev.item)} ${prev.pass ? 'passes' : 'fails'}. ` : '';
-      setAnnounce(`${tested}Clue ${last.index + 1}: ${describeItem(rule.domain, last.item)} ${last.pass ? 'passes' : 'fails'}.`);
-    }
+  const over = isOver(game);
+  const last = isLastClue(game);
+
+  const apply = (next: GameState) => {
+    const newest = next.entries[next.entries.length - 1];
+    if (next.status === 'solved') setAnnounce(`That's it! Solved on clue ${next.solvedOn}.`);
+    else if (next.status === 'failed') setAnnounce(`Out of clues. The rule was: ${rule.description}`);
+    else if (newest?.kind === 'clue') setAnnounce(`Clue ${newest.index + 1}: ${describeItem(rule.domain, newest.item)} ${newest.pass ? 'fits' : "doesn't fit"}.`);
     setGame(next);
   };
 
-  const onItem = (item: Item) => {
-    setSheet(null);
-    update(guessItem(rule, game, item));
-  };
+  const onSubmit = async () => {
+    setError(null);
+    const guess = ruleText.trim();
+    if (!fifth.item) return setError('Add your 5th first.');
+    if (fifth.error) return setError(fifth.error);
+    if (guess.length < 3) return setError('Describe the rule in a few words.');
+    const key = itemKey(rule.domain, fifth.item);
+    if (game.entries.some((e) => itemKey(rule.domain, e.item) === key)) return setError("That one's already on the thread. Try a new 5th.");
 
-  const finalRound = game.revealed >= MAX_CLUES;
+    let correct = matchesAnyPhrasing(guess, rule.acceptedPhrasings);
+    if (!correct) {
+      setBusy(true);
+      try {
+        correct = (await judgeRemote(rule.id, guess)).verdict === 'correct';
+      } catch (e) {
+        setBusy(false);
+        return setError(e instanceof JudgeUnavailable ? `${e.message} Nothing was used up.` : 'Something went wrong.');
+      }
+      setBusy(false);
+    }
+    const pass = rule.predicate(fifth.item);
+    apply(submit(rule, game, fifth.item, guess, correct));
+    if (!correct) setAnnounce(`Your 5th ${pass ? 'fits' : "doesn't fit"}. The rule isn't it.`);
+    setFifth({ item: null, error: null });
+    setFifthKey((k) => k + 1);
+  };
 
   return (
     <div className="play">
-      <p className="domain-badge">
-        <span className="domain-name">{DOMAIN_LABEL[rule.domain]}</span>
-        <span className="clue-pips" aria-label={`clue ${game.revealed} of ${MAX_CLUES}`}>
-          {Array.from({ length: MAX_CLUES }, (_, i) => (
-            <span key={i} className={`pip ${i < game.revealed ? 'is-on' : ''}`} />
-          ))}
+      <div className="play-meta">
+        <span>
+          {title} · {DOMAIN_LABEL[rule.domain]}
         </span>
-      </p>
+        {!over && (
+          <span>
+            Clue {game.revealed} of {CLUE_COUNT}
+          </span>
+        )}
+      </div>
+      {!over && <p className="play-sub">What's the rule? Fewer clues, better score.</p>}
 
-      <Thread entries={game.entries} domain={rule.domain} />
+      <Thread entries={game.entries} domain={rule.domain} rule={rule} revealed={game.revealed} over={over} />
 
-      {game.status === 'exam' && game.exam && <Exam domain={rule.domain} questions={game.exam} onSubmit={(a) => update(submitExam(rule, game, a))} />}
+      {over && renderResult(game)}
+      <div ref={endRef} />
 
-      {isOver(game) && renderResult(game)}
-
-      <div ref={endRef} className="end-spacer" />
-
-      {game.status === 'playing' && (
-        <div className="action-bar">
-          {canGuessItem(game) && (
-            <button className="btn btn-secondary" onClick={() => setSheet('item')}>
-              Test a {ITEM_NOUN[rule.domain]}
-            </button>
+      {!over && (
+        <form
+          className="answer"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void onSubmit();
+          }}
+        >
+          <FifthInput domain={rule.domain} resetKey={fifthKey} onChange={setFifth} disabled={busy} />
+          <div className="field">
+            <label className="field-label" htmlFor="rule-input">
+              The rule · in your words
+            </label>
+            <input
+              id="rule-input"
+              className="input"
+              value={ruleText}
+              maxLength={200}
+              autoComplete="off"
+              placeholder={RULE_EXAMPLE[rule.domain]}
+              onChange={(e) => setRuleText(e.target.value)}
+              disabled={busy}
+            />
+          </div>
+          {(error || fifth.error) && (
+            <p className="form-error" role="alert">
+              {error ?? fifth.error}
+            </p>
           )}
-          <button className="btn btn-primary" onClick={() => setSheet('rule')}>
-            {finalRound ? 'Final guess' : 'Name the rule'}
-          </button>
-          {finalRound && (
-            <button className="btn btn-link" onClick={() => update(giveUp(game))}>
-              Give up &amp; reveal
+          <div className="btn-row">
+            <button type="button" className="btn" onClick={() => apply(skip(rule, game))} disabled={busy}>
+              {last ? 'Give up' : 'Skip ›'}
             </button>
-          )}
-        </div>
+            <button type="submit" className="btn btn-primary" disabled={busy}>
+              {busy ? (
+                <>
+                  <span className="spin" aria-hidden="true" /> Judging…
+                </>
+              ) : last ? (
+                'Final answer'
+              ) : (
+                'Submit'
+              )}
+            </button>
+          </div>
+          <p className="note">{last ? 'Last clue. One more go.' : 'A miss or a skip shows the next clue.'}</p>
+        </form>
       )}
 
       <div className="sr-only" aria-live="polite">
         {announce}
       </div>
-
-      {sheet === 'item' && (
-        <Sheet title={`Test your own ${ITEM_NOUN[rule.domain]}`} onClose={() => setSheet(null)}>
-          <p className="muted">
-            Make any {ITEM_NOUN[rule.domain]} you like and see if it passes the rule. Testing uses up a clue: clue {game.revealed + 1} is revealed
-            straight after.
-          </p>
-          <ItemInput domain={rule.domain} onSubmit={onItem} submitLabel={`Test it · reveals clue ${game.revealed + 1}`} />
-        </Sheet>
-      )}
-      {sheet === 'rule' && (
-        <Sheet title={finalRound ? 'Final guess' : 'Name the rule'} onClose={() => setSheet(null)}>
-          <RuleGuess
-            rule={rule}
-            freeRetry={!game.closeRetries.includes(game.revealed)}
-            onVerdict={(text, verdict, hint) => {
-              setSheet(null);
-              update(applyVerdict(rule, game, text, verdict, hint));
-            }}
-          />
-        </Sheet>
-      )}
     </div>
-  );
-}
-
-function RuleGuess({
-  rule,
-  freeRetry,
-  onVerdict,
-}: {
-  rule: Rule;
-  freeRetry: boolean;
-  onVerdict: (text: string, verdict: 'correct' | 'close' | 'wrong', hint?: string) => void;
-}) {
-  const [text, setText] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const submit = async () => {
-    const guess = text.trim();
-    if (guess.length < 3 || busy) return;
-    if (matchesAnyPhrasing(guess, rule.acceptedPhrasings)) return onVerdict(guess, 'correct');
-    setBusy(true);
-    setError(null);
-    try {
-      const r = await judgeRemote(rule.id, guess);
-      onVerdict(guess, r.verdict, r.hint);
-    } catch (e) {
-      setError(e instanceof JudgeUnavailable ? `${e.message} This guess didn't cost a clue.` : 'Something went wrong.');
-      setBusy(false);
-    }
-  };
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        void submit();
-      }}
-    >
-      <p className="muted">
-        Describe the secret rule in your own words. If it's right, you'll prove it on 3 new {ITEM_NOUN[rule.domain]}s.
-        {freeRetry ? ' A "close" answer gets one free retry.' : ''}
-      </p>
-      <label className="sr-only" htmlFor="rule-input">
-        Your rule
-      </label>
-      <textarea
-        id="rule-input"
-        className="text-input"
-        rows={3}
-        maxLength={200}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            void submit();
-          }
-        }}
-        placeholder={RULE_EXAMPLE[rule.domain]}
-        disabled={busy}
-      />
-      {error && (
-        <p className="form-error" role="alert">
-          {error}
-        </p>
-      )}
-      <button type="submit" className="btn btn-primary btn-block" disabled={busy || text.trim().length < 3}>
-        {busy ? (
-          <>
-            <span className="spin" aria-hidden="true" />
-            The judge is pondering…
-          </>
-        ) : (
-          'Judge it'
-        )}
-      </button>
-    </form>
   );
 }

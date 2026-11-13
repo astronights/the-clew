@@ -52,16 +52,6 @@ export function ruleForPuzzle(n: number): Rule {
   return cycleOrder(domain, rules, cycle)[k % rules.length];
 }
 
-/** Rules that have already been a daily puzzle before `today` (for Practice). */
-export function pastRules(today: number): { puzzleNo: number; rule: Rule }[] {
-  const seen = new Map<string, number>();
-  for (let n = 1; n < today; n++) seen.set(ruleForPuzzle(n).id, n);
-  const todayId = ruleForPuzzle(today).id;
-  return [...seen.entries()]
-    .filter(([id]) => id !== todayId)
-    .map(([id, puzzleNo]) => ({ puzzleNo, rule: rulesForDomain(domainOfPuzzle(puzzleNo)).find((r) => r.id === id)! }));
-}
-
 /** ms until the next 00:00 UTC. */
 export function msUntilNextPuzzle(now = Date.now()): number {
   return DAY - ((now - EPOCH_UTC) % DAY);

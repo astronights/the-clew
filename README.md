@@ -1,12 +1,23 @@
 # 🧶 The Clew
 
-A mobile-first daily deduction puzzle. One secret rule per day, the same for everyone (new rule at 00:00 UTC). Follow the thread of 5 clues and name the rule in as few as you can.
+A mobile-first daily deduction puzzle. One secret rule per day, the same for everyone (new rule at 00:00 UTC). Clues hang on a thread; work out the rule in as few as you can.
 
-- **Clues** are items marked ✅ (passes) or ❌ (fails), revealed one at a time.
-- After each clue: **🧪 test an item** of your own (you see ✅/❌, then the next clue), or **💡 name the rule** in free text.
-- A correct-sounding rule must be **proved**: sort 3 unseen items into passes/fails. All right → solved. A miss or a wrong verdict reveals the next clue.
-- A "close" verdict gets one free retry per clue. After clue 5 there's one final rule guess, then the rule is revealed.
-- Score = the clue number you solved on (1–5).
+- **Clue 1** is shown: an item marked ✓ fits or ✗ doesn't fit the rule.
+- Fill in **your 5th** (an item you think fits) and **the rule** in your own words, then **Submit**.
+- **Rule right** → solved on that clue. Your 5th is your own check: it's pinned on the thread with ✓/✗ either way and doesn't affect the score.
+- **Rule wrong**, or **Skip** → the next clue appears. No hints. There are 4 clues; after the last one a miss or skip ends the game and reveals the rule.
+- Score = the clue number you named the rule on (1–4).
+
+Share text:
+
+```
+🧶 The Clew #42
+Untangled it on clue 3 of 4 🎉
+❌ ⏭️ ✅
+theclew.fyi
+```
+
+(one emoji per clue: ❌ wrong rule · ⏭️ skipped · ✅ got it; the line changes with the day, e.g. "Got it on the first clue 🤯", "Totally tangled today 🙈")
 
 Domains rotate by UTC weekday: Mon & Fri **numbers** (1–999) · Tue **3-number sequences** · Wed & Sat **tile rows** (🔴🔵🟢🟡 × ●▲■★) · Thu & Sun **words**.
 
@@ -14,7 +25,7 @@ Pass/fail is always deterministic TypeScript. AI (Gemini) is only used to judge 
 
 ## Stack
 
-- Vite + React + TypeScript (no UI libraries), Google Fonts *Fraunces* (display, items) + *Inter* (body)
+- Vite + React + TypeScript (no UI libraries), Google Fonts *IBM Plex Mono* (items, labels) + *IBM Plex Sans Condensed* (text)
 - Vercel Functions in `/api` (Web `Request`/`Response` handlers)
 - Neon Postgres via `@neondatabase/serverless`
 - Vitest
@@ -33,35 +44,35 @@ scripts/
   migrate.ts, seed.ts npm run db:migrate / db:seed
 src/
   rules/              types, numbers/sequences/tiles/words rules + decoys, clues.ts, wordlist
-  lib/                daily picker, fuzzy matcher, game state machine, exam selection,
+  lib/                daily picker, fuzzy matcher, game state machine,
                       clue generator, elimination, validation, share text, stats, storage
-  components/         Thread, ItemView, inputs (keypad, tile builder, word input), Sheet, Exam, ResultCard, confetti
-  screens/            Today, Practice, Stats, Play (shared game screen)
+  components/         Thread, ItemView, FifthInput (number / sequence / word / tile builder), Sheet, ResultCard, HowToPlay, confetti
+  screens/            Today, Stats, Play (game screen)
 tests/                Vitest suites
 ```
 
 ## Rules
 
-Each rule is `{ id, domain, predicate, description, acceptedPhrasings[], decoyRuleIds[], clues[5] }`.
+Each rule is `{ id, domain, predicate, description, acceptedPhrasings[], decoyRuleIds[], clues[4] }`.
 
 - 40 playable rules (10 per domain) live in `src/rules/{numbers,sequences,tiles,words}.ts`.
 - **Decoys** are near-miss rules (e.g. *prime*, *palindrome*, *strictly increasing*). They can be other playable rules or decoy-only predicates in the same files. Each rule lists 6.
-- **Clues** (`src/rules/clues.ts`) are chosen so that every clue removes at least one decoy that was still possible, early clues remove as few as possible (vague) and later ones more (revealing), and all decoys are gone after clue 5. They have 3–4 ✅ and open with a ✅.
+- **Clues** (`src/rules/clues.ts`) are chosen so that every clue removes at least one decoy that was still possible, early clues remove as few as possible (vague) and later ones more (revealing), and all decoys are gone after clue 4. They have 2–3 ✅ and open with a ✅.
 
 Example rules and their clues:
 
 | Rule | Description | Clues |
 | --- | --- | --- |
-| `num-odd-digit-sum` | The digits add up to an odd number. | 375 ✅ · 779 ✅ · 999 ✅ · 435 ❌ · 716 ❌ |
-| `num-contains-7` | The number contains the digit 7. | 739 ✅ · 795 ✅ · 713 ✅ · 19 ❌ · 37 ✅ |
-| `num-last-gt-first` | The last digit is bigger than the first digit. | 18 ✅ · 472 ❌ · 589 ✅ · 124 ✅ · 648 ✅ |
-| `seq-middle-largest` | The middle number is the largest. | (6, 18, 12) ✅ · (9, 6, 1) ❌ · (9, 19, 9) ✅ · (4, 20, 4) ✅ · (3, 18, 20) ❌ |
-| `seq-alternating-parity` | The numbers alternate between odd and even. | (20, 9, 16) ✅ · (20, 3, 8) ✅ · (16, 13, 13) ❌ · (15, 10, 1) ✅ · (7, 12, 7) ✅ |
-| `seq-sum-gt-30` | The three numbers add up to more than 30. | (18, 10, 20) ✅ · (14, 3, 6) ❌ · (20, 19, 19) ✅ · (18, 9, 13) ✅ · (5, 16, 1) ❌ |
-| `tile-no-adjacent-colour` | No two neighbouring tiles share a colour. | 🟢★ 🔴▲ 🔵● 🟡★ ✅ · 🟢■ 🔴■ 🟡■ 🔵★ ✅ · 🟡■ 🔵■ 🔴▲ 🟡★ ✅ · 🔴▲ 🟢● 🟢▲ ❌ · 🟡★ 🟡● 🔵● 🔴★ ❌ |
-| `tile-first-last-same-shape` | The first and last tiles are the same shape. | 🟢● 🟢● ✅ · 🟢● 🟡▲ 🟡● 🟢● 🔴▲ ❌ · 🟡● 🔵● 🟡● ✅ · 🟡★ 🟢● 🟡★ ✅ · 🔴● 🔴▲ 🟢● 🟡★ 🔵● ✅ |
-| `word-double-letter` | The word has a double letter. | COOKIE ✅ · FIDDLE ✅ · PLUCKY ❌ · KITTEN ✅ · CIRCLE ❌ |
-| `word-starts-two-consonants` | The word starts with two consonants. | BRAVE ✅ · ZIPPER ❌ · BRIDGE ✅ · GLAD ✅ · JOLLY ❌ |
+| `num-odd-digit-sum` | The digits add up to an odd number. | 375 ✅ · 884 ❌ · 151 ✅ · 347 ❌ |
+| `num-contains-7` | The number contains the digit 7. | 739 ✅ · 795 ✅ · 3 ❌ · 227 ✅ |
+| `num-last-gt-first` | The last digit is bigger than the first digit. | 18 ✅ · 472 ❌ · 248 ✅ · 436 ✅ |
+| `seq-middle-largest` | The middle number is the largest. | (5, 20, 9) ✅ · (7, 20, 4) ✅ · (11, 13, 7) ✅ · (13, 17, 17) ❌ |
+| `seq-alternating-parity` | The numbers alternate between odd and even. | (20, 9, 16) ✅ · (20, 3, 8) ✅ · (16, 13, 13) ❌ · (7, 6, 10) ❌ |
+| `seq-sum-gt-30` | The three numbers add up to more than 30. | (18, 10, 20) ✅ · (14, 3, 6) ❌ · (20, 2, 16) ✅ · (10, 13, 12) ✅ |
+| `tile-no-adjacent-colour` | No two neighbouring tiles share a colour. | 🟢★ 🔴▲ 🔵● 🟡★ ✅ · 🟢■ 🟢■ ❌ · 🟡■ 🔵■ 🔴▲ 🟡★ ✅ · 🔴▲ 🟡▲ 🔴● 🔴● 🔴★ ❌ |
+| `tile-first-last-same-shape` | The first and last tiles are the same shape. | 🟢● 🟢● ✅ · 🟢● 🟡▲ 🟡● 🟢● 🔴▲ ❌ · 🔴▲ 🔵● 🔴● 🔴★ ❌ · 🟢■ 🟡■ 🔴★ 🟡■ ✅ |
+| `word-double-letter` | The word has a double letter. | COOKIE ✅ · FIDDLE ✅ · SILVER ❌ · ENGINE ❌ |
+| `word-starts-two-consonants` | The word starts with two consonants. | BRAVE ✅ · ZIPPER ❌ · TUMBLE ❌ · THROW ✅ |
 
 `npm run validate-rules -- --verbose` prints which decoys each clue removes.
 
@@ -71,7 +82,7 @@ Example rules and their clues:
 2. `npm run gen-clues -- --write <rule-id>` to pick clues (or write them by hand in `src/rules/clues.ts`).
 3. `npm run validate-rules`. It checks that:
    - every clue's ✅/❌ matches the predicate and the item is valid,
-   - each clue removes at least one decoy that was still alive, and every decoy is gone by clue 5,
+   - each clue removes at least one decoy that was still alive, and every decoy is gone by clue 4,
    - the pass rate is 20–60% over the domain's reference pool (numbers 1–999; all triples of 1–20; 4000 seeded tile rows of 2–5 tiles; the built-in word list).
 
 Rules like *prime* (17%), *palindrome* (11%) or *strictly increasing* (14%) are too rare for that pass-rate band, so they are used as decoys instead.
@@ -81,10 +92,10 @@ Rules like *prime* (17%), *palindrome* (11%) or *strictly increasing* (14%) are 
 ## Judging "Name the rule"
 
 1. **Client fuzzy match** (`src/lib/fuzzy.ts`): lowercase, drop punctuation and stopwords, map synonyms and number words, then token overlap against each accepted phrasing ≥ 0.75. Numbers, letters and meaning-flipping words (colours, shapes, odd/even, comparisons, positions, negation) must match exactly, so "multiple of 5" never matches "multiple of 3".
-2. Otherwise **`POST /api/judge`**: rate limit (30/hour per hashed IP) → Neon `verdict_cache` → Gemini with the rule description, predicate source and decoys. The guess is sanitised and wrapped in `<guess>…</guess>` and the model is told to treat it strictly as data. The response is forced to JSON `{verdict: correct|close|wrong, hint}`. Hints are cut to 12 words and replaced with a generic hint if they mention the rule's numbers, letters or phrasing. The verdict is cached.
-3. **Correct → prove it** (`src/lib/exam.ts`): 3 unseen items that best break the decoys still consistent with everything the player has seen, always a mix of ✅ and ❌.
+2. Otherwise **`POST /api/judge`**: rate limit (30/hour per hashed IP) → Neon `verdict_cache` → Gemini with the rule description, predicate source and decoys. The guess is sanitised and wrapped in `<guess>…</guess>` and the model is told to treat it strictly as data. The response is forced to JSON `{verdict: correct|close|wrong, hint}`; the game only counts `correct` as right and shows no hints. The verdict is cached.
+3. **Your 5th** is always checked by the rule's predicate in code, never by the model.
 
-If the judge is unreachable, the guess does not cost a clue.
+If the judge is unreachable, the submit does not cost a clue.
 
 ## Local development
 
@@ -94,10 +105,10 @@ cp .env.example .env    # optional: fill in DATABASE_URL / GEMINI_API_KEY
 npm run dev             # http://localhost:5173 (the /api functions run inside Vite)
 ```
 
-Without `DATABASE_URL` the game still works: no verdict cache, rate limit or global stats. Without `GEMINI_API_KEY`, only guesses that fuzzy-match an accepted phrasing can be judged; others show "the judge is napping" and don't cost a clue. `vercel dev` also works if you have the Vercel CLI.
+Without `DATABASE_URL` the game still works: no verdict cache, rate limit or global stats. Without `GEMINI_API_KEY`, only rule guesses that fuzzy-match an accepted phrasing can be judged; others show an error and don't cost a clue. `vercel dev` also works if you have the Vercel CLI.
 
 ```bash
-npm test                # Vitest: predicates, daily picker, fuzzy matching, elimination, exam, share/stats, judge sanitising
+npm test                # Vitest: predicates, daily picker, fuzzy matching, elimination, game flow, share/stats, word input, judge sanitising
 npm run validate-rules
 npm run build           # typecheck + production build
 ```
@@ -116,12 +127,12 @@ npm run build           # typecheck + production build
 1. Create a project at [neon.tech](https://neon.tech) and copy the **pooled** connection string.
 2. Put it in `.env` as `DATABASE_URL=...`.
 3. `npm run db:migrate` — creates `verdict_cache`, `daily_results`, `rate_limit` (and a `schema_migrations` table).
-4. `npm run db:seed` — pre-caches every accepted phrasing as `correct`. `npm run db:seed -- --demo` also adds fake results for today's puzzle so the "x% needed more" line has data.
+4. `npm run db:seed` — pre-caches every accepted phrasing as `correct`. `npm run db:seed -- --demo` also adds fake results for today's puzzle so the "x% of players needed more clues" line has data.
 
 Tables (anonymous, no PII):
 
 - `verdict_cache(rule_id, normalized_guess, verdict, hint, created_at)`
-- `daily_results(puzzle_no, solved_on_clue 0–5, count)` — 0 = unsolved; incremented by `POST /api/result`
+- `daily_results(puzzle_no, solved_on_clue 0–4, count)` — 0 = unsolved; incremented by `POST /api/result`
 - `rate_limit(ip_hash, "window", count, updated_at)` — hourly windows; old rows are pruned automatically
 
 ## Deploy to Vercel
@@ -137,5 +148,5 @@ The package is CommonJS on purpose (no `"type": "module"`), so Vercel compiles `
 
 - The rules ship in the client bundle (like most daily word games), so a determined player can read them.
 - Stats and today's progress live in `localStorage` (wrapped in try/catch); the game still works when storage is blocked.
-- Accessibility: verdicts always show an icon and a word, tiles carry a colour letter, live regions announce clues, dialogs trap focus and close on Escape, and motion respects `prefers-reduced-motion`.
+- Accessibility: verdicts always show a symbol and a word (✓ FITS / ✗ DOESN'T), fails are also hatched, tiles carry a colour letter, live regions announce clues, dialogs trap focus and close on Escape, and motion respects `prefers-reduced-motion`.
 - No ads, accounts or tracking.

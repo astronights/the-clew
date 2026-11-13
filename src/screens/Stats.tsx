@@ -1,12 +1,25 @@
+import { CLUE_COUNT } from '../rules/types';
+import { useEffect } from 'react';
 import { displayedStreak, loadStats } from '../lib/stats';
 
-export function StatsScreen({ today }: { today: number }) {
+export function StatsScreen({ today, onClose }: { today: number; onClose: () => void }) {
   const s = loadStats();
   const max = Math.max(1, ...s.dist);
-  const rows = [1, 2, 3, 4, 5, 0];
+  const rows = [...Array.from({ length: CLUE_COUNT }, (_, i) => i + 1), 0];
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
   return (
-    <section className="card stats">
-      <h2>Your stats</h2>
+    <div className="modal-backdrop" onClick={onClose}>
+      <section className="modal stats" role="dialog" aria-modal="true" aria-labelledby="stats-title" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <h2 id="stats-title">Your stats</h2>
+          <button className="icon-btn" onClick={onClose} aria-label="Close" autoFocus>
+            ✕
+          </button>
+        </div>
       <dl className="stat-grid">
         <div>
           <dt>Played</dt>
@@ -29,7 +42,7 @@ export function StatsScreen({ today }: { today: number }) {
       <ul className="dist" aria-label="Distribution of results">
         {rows.map((k) => (
           <li key={k} className="dist-row">
-            <span className="dist-label">{k === 0 ? '✂️' : k}</span>
+            <span className="dist-label">{k === 0 ? '✗' : k}</span>
             <span className="dist-track">
               <span className={`dist-bar ${k === 0 ? 'is-fail' : ''}`} style={{ width: `${(s.dist[k] / max) * 100}%` }}>
                 {s.dist[k]}
@@ -40,6 +53,7 @@ export function StatsScreen({ today }: { today: number }) {
         ))}
       </ul>
       <p className="muted small">Stats live only on this device. No accounts, no tracking.</p>
-    </section>
+      </section>
+    </div>
   );
 }

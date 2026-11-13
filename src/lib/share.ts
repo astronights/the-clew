@@ -1,6 +1,11 @@
+import { CLUE_COUNT } from '../rules/types';
+import type { Outcome } from './game';
+
 export const SITE = 'theclew.fyi';
 
-/** counts[k] = players who solved on clue k (k = 1..5); counts[0] = unsolved. */
+export const OUTCOME_EMOJI: Record<Outcome, string> = { miss: '❌', skip: '⏭️', solved: '✅' };
+
+/** counts[k] = players who solved on clue k (1..CLUE_COUNT); counts[0] = unsolved. */
 export function neededMorePercent(counts: number[], solvedOn: number): number | null {
   const total = counts.reduce((a, b) => a + b, 0);
   if (!total || solvedOn < 1) return null;
@@ -14,20 +19,14 @@ export function solvedPercent(counts: number[]): number | null {
   return Math.round(((total - counts[0]) / total) * 100);
 }
 
-export function threadBar(solvedOn: number): string {
-  if (solvedOn < 1) return '🧵🧵🧵🧵🧵 ✂️';
-  return '🧵'.repeat(solvedOn) + '⬜'.repeat(5 - solvedOn);
+/** One friendly line that changes with how the day went. */
+export function resultLine(solvedOn: number): string {
+  if (solvedOn === 1) return 'Got it on the first clue 🤯';
+  if (solvedOn === CLUE_COUNT) return `Got there on clue ${CLUE_COUNT}, phew 😅`;
+  if (solvedOn > 1) return `Untangled it on clue ${solvedOn} of ${CLUE_COUNT} 🎉`;
+  return 'Totally tangled today 🙈';
 }
 
-export function shareText(puzzleNo: number, solvedOn: number, counts: number[] | null): string {
-  const lines = [`🧶 The Clew #${puzzleNo} · ${threadBar(solvedOn)}`];
-  if (solvedOn >= 1) {
-    const pct = counts ? neededMorePercent(counts, solvedOn) : null;
-    lines.push(`Solved on clue ${solvedOn}` + (pct !== null ? ` · ${pct}% needed more` : ''));
-  } else {
-    const pct = counts ? solvedPercent(counts) : null;
-    lines.push('The thread snapped' + (pct !== null ? ` · ${pct}% solved it` : ''));
-  }
-  lines.push(SITE);
-  return lines.join('\n');
+export function shareText(puzzleNo: number, solvedOn: number, outcomes: Outcome[]): string {
+  return [`🧶 The Clew #${puzzleNo}`, resultLine(solvedOn), outcomes.map((o) => OUTCOME_EMOJI[o]).join(' '), SITE].join('\n');
 }

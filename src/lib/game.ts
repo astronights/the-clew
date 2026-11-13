@@ -1,101 +1,78 @@
-import type { Item, Rule } from '../rules/types';
+import { CLUE_COUNT, type Item, type Rule } from '../rules/types';
 import type { Observation } from './elimination';
-import { selectExam, type ExamQuestion } from './exam';
 
-export type Verdict = 'correct' | 'close' | 'wrong';
+/** What happened on each clue, for the result screen and the share text. */
+export type Outcome = 'miss' | 'skip' | 'solved';
 
 export type Entry =
   | { kind: 'clue'; index: number; item: Item; pass: boolean }
-  | { kind: 'guess'; item: Item; pass: boolean }
-  | { kind: 'rule'; text: string; verdict: Verdict; hint?: string }
-  | { kind: 'exam'; passed: boolean; score: number };
+  /** One submit: the player's own 5th item (checked by code) and their rule (judged). */
+  | { kind: 'attempt'; item: Item; pass: boolean; rule: string; correct: boolean };
 
-export type Status = 'playing' | 'exam' | 'solved' | 'failed';
+export type Status = 'playing' | 'solved' | 'failed';
 
 export interface GameState {
   ruleId: string;
   seed: string;
-  /** Number of clues revealed (1–5). */
+  /** Number of clues revealed (1–CLUE_COUNT). */
   revealed: number;
   entries: Entry[];
   status: Status;
-  /** Clue number solved on (1–5); 0 when failed. */
+  /** Clue number the rule was named on (1–CLUE_COUNT); 0 when failed. */
   solvedOn: number | null;
-  /** Clue numbers on which the free retry after a "close" verdict was used. */
-  closeRetries: number[];
-  exam: ExamQuestion[] | null;
+  /** outcomes[i] = what the player did while clue i+1 was the latest. */
+  outcomes: Outcome[];
 }
 
-export const MAX_CLUES = 5;
+export { CLUE_COUNT };
 
 export function newGame(rule: Rule, seed: string): GameState {
+  const c = rule.clues[0];
   return {
     ruleId: rule.id,
     seed,
     revealed: 1,
-    entries: [{ kind: 'clue', index: 0, item: rule.clues[0].item, pass: rule.clues[0].pass }],
+    entries: [{ kind: 'clue', index: 0, item: c.item, pass: c.pass }],
     status: 'playing',
     solvedOn: null,
-    closeRetries: [],
-    exam: null,
+    outcomes: [],
   };
 }
 
+/** Every item with a known verdict: the clues plus the player's own 5ths. */
 export function observations(state: GameState): Observation[] {
-  return state.entries.flatMap((e) => (e.kind === 'clue' || e.kind === 'guess' ? [{ item: e.item, pass: e.pass }] : []));
+  return state.entries.map((e) => ({ item: e.item, pass: e.pass }));
 }
 
-/** Can the player still test their own item? Not after the 5th clue: only a final rule guess remains. */
-export function canGuessItem(state: GameState): boolean {
-  return state.status === 'playing' && state.revealed < MAX_CLUES;
-}
+export const isOver = (s: GameState) => s.status !== 'playing';
+export const isLastClue = (s: GameState) => s.revealed >= CLUE_COUNT;
 
-function advance(rule: Rule, s: GameState): GameState {
-  if (s.revealed >= MAX_CLUES) return { ...s, status: 'failed', solvedOn: 0, exam: null };
+function advance(rule: Rule, s: GameState, outcome: Outcome): GameState {
+  const outcomes = [...s.outcomes, outcome];
+  if (s.revealed >= CLUE_COUNT) return { ...s, outcomes, status: 'failed', solvedOn: 0 };
   const c = rule.clues[s.revealed];
   return {
     ...s,
-    status: 'playing',
-    exam: null,
+    outcomes,
     revealed: s.revealed + 1,
     entries: [...s.entries, { kind: 'clue', index: s.revealed, item: c.item, pass: c.pass }],
   };
 }
 
-export function guessItem(rule: Rule, s: GameState, item: Item): GameState {
-  if (!canGuessItem(s)) return s;
-  const next = { ...s, entries: [...s.entries, { kind: 'guess' as const, item, pass: rule.predicate(item) }] };
-  return advance(rule, next);
-}
-
-export function applyVerdict(rule: Rule, s: GameState, text: string, verdict: Verdict, hint?: string): GameState {
+/**
+ * Submit the player's 5th item and their rule. The rule decides the result;
+ * the 5th is their own test and is pinned on the thread either way.
+ */
+export function submit(rule: Rule, s: GameState, item: Item, ruleText: string, correct: boolean): GameState {
   if (s.status !== 'playing') return s;
-  const withEntry: GameState = { ...s, entries: [...s.entries, { kind: 'rule', text, verdict, hint }] };
-  if (verdict === 'correct') {
-    const attempt = s.entries.filter((e) => e.kind === 'rule').length;
-    return { ...withEntry, status: 'exam', exam: selectExam(rule, observations(s), `${s.seed}:${s.revealed}:${attempt}`) };
-  }
-  if (verdict === 'close' && !s.closeRetries.includes(s.revealed)) {
-    return { ...withEntry, closeRetries: [...s.closeRetries, s.revealed] };
-  }
-  return advance(rule, withEntry);
+  const attempt: Entry = { kind: 'attempt', item, pass: rule.predicate(item), rule: ruleText, correct };
+  const next: GameState = { ...s, entries: [...s.entries, attempt] };
+  if (correct) return { ...next, outcomes: [...s.outcomes, 'solved'], status: 'solved', solvedOn: s.revealed };
+  return advance(rule, next, 'miss');
 }
 
-/** Player answers to the confirmation questions, in exam order. */
-export function submitExam(rule: Rule, s: GameState, answers: boolean[]): GameState {
-  if (s.status !== 'exam' || !s.exam) return s;
-  const score = s.exam.filter((q, i) => answers[i] === q.pass).length;
-  const passed = score === s.exam.length;
-  // reveal what the exam items actually were, so the player learns from it
-  const examObs: Entry[] = s.exam.map((q) => ({ kind: 'guess', item: q.item, pass: q.pass }));
-  const next: GameState = { ...s, entries: [...s.entries, { kind: 'exam', passed, score }, ...(passed ? [] : examObs)] };
-  if (passed) return { ...next, status: 'solved', solvedOn: s.revealed, exam: null };
-  return advance(rule, next);
+/** Reveal the next clue without guessing. On the last clue this gives up. */
+export function skip(rule: Rule, s: GameState): GameState {
+  if (s.status !== 'playing') return s;
+  return advance(rule, s, 'skip');
 }
-
-export function giveUp(s: GameState): GameState {
-  if (s.status === 'solved' || s.status === 'failed') return s;
-  return { ...s, status: 'failed', solvedOn: 0, exam: null };
-}
-
-export const isOver = (s: GameState) => s.status === 'solved' || s.status === 'failed';

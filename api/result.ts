@@ -1,4 +1,5 @@
 import { puzzleNumber } from '../src/lib/daily';
+import { CLUE_COUNT } from '../src/rules/types';
 import { getSql } from './_lib/db';
 import { clientIp, hashIp, json, readJson } from './_lib/http';
 import { withinRateLimit } from './_lib/ratelimit';
@@ -13,7 +14,7 @@ export async function POST(req: Request): Promise<Response> {
   const today = puzzleNumber();
   // allow yesterday too, for players finishing around midnight UTC
   if (!Number.isInteger(puzzleNo) || puzzleNo < today - 1 || puzzleNo > today) return json({ error: 'bad puzzle' }, 400);
-  if (!Number.isInteger(clue) || clue < 0 || clue > 5) return json({ error: 'bad clue' }, 400);
+  if (!Number.isInteger(clue) || clue < 0 || clue > CLUE_COUNT) return json({ error: 'bad clue' }, 400);
   const sql = getSql();
   if (!sql) return json({ ok: false, reason: 'no database' });
   if (!(await withinRateLimit(sql, hashIp(clientIp(req)), 'result', RESULT_LIMIT_PER_HOUR))) return json({ error: 'rate limited' }, 429);
