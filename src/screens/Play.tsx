@@ -170,7 +170,6 @@ export function Play({ puzzle, storageKey, seed, title, onFinish, renderResult }
               {error}
             </p>
           )}
-          <p className="note">{last ? 'One last guess at the rule.' : 'Each guess or wrong rule opens the next clue. Only the rule is scored.'}</p>
           {last && (
             <button type="button" className="btn btn-link" onClick={() => apply(giveUp(game))} disabled={busy}>
               Give up and show the answer

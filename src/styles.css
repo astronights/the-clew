@@ -207,11 +207,6 @@ input {
   font-size: 0.8rem;
   color: var(--ink-2);
 }
-.play-sub {
-  font-weight: 500;
-  color: var(--ink-2);
-  margin: -16px 0 16px;
-}
 
 /* the thread */
 .thread {
