@@ -27,9 +27,11 @@ interface Props {
   outcomes: Outcome[];
   puzzleNo?: number;
   counts?: number[] | null;
+  /** For "what comes next" puzzles: the 5th and why. */
+  reveal?: { answer: string; explanation: string };
 }
 
-export function ResultCard({ rule, solvedOn, outcomes, puzzleNo, counts }: Props) {
+export function ResultCard({ rule, solvedOn, outcomes, puzzleNo, counts, reveal }: Props) {
   const [status, setStatus] = useState('');
   const solved = solvedOn > 0;
   const text = shareText(puzzleNo ?? 0, solvedOn, outcomes);
@@ -53,6 +55,13 @@ export function ResultCard({ rule, solvedOn, outcomes, puzzleNo, counts }: Props
       <h2 className="result-head">{solved ? (solvedOn === 1 ? 'First clue. Wow.' : `Untangled on clue ${solvedOn} of ${CLUE_COUNT}.`) : 'Tangled today.'}</h2>
       <p className="eyebrow">The rule</p>
       <p className="result-rule">{rule.description}</p>
+      {reveal && (
+        <>
+          <p className="eyebrow">The 5th</p>
+          <p className="result-rule">{reveal.answer}</p>
+          <p className="result-expl">{reveal.explanation}</p>
+        </>
+      )}
 
       <ol className="trail" aria-label="How each clue went">
         {Array.from({ length: CLUE_COUNT }, (_, i) => {
@@ -61,7 +70,7 @@ export function ResultCard({ rule, solvedOn, outcomes, puzzleNo, counts }: Props
             <li key={i} className={`trail-step ${o ? `is-${o}` : 'is-unused'}`}>
               clue {i + 1}
               <br />
-              {o ? TRAIL_TEXT[o] : '—'}
+              {o ? (reveal && o === 'test' ? 'guessed' : TRAIL_TEXT[o]) : '—'}
             </li>
           );
         })}

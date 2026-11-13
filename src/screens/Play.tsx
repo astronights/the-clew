@@ -14,6 +14,7 @@ export const DOMAIN_LABEL: Record<Domain, string> = {
   sequences: 'sequences',
   tiles: 'tiles',
   words: 'words',
+  chain: 'what comes next',
 };
 
 interface Props {
@@ -72,7 +73,7 @@ export function Play({ rule, storageKey, seed, title, onFinish, renderResult }: 
 
   const onTest = () => {
     setError(null);
-    if (!fifth.item) return setError('Add an item to test first.');
+    if (!fifth.item) return setError(rule.domain === 'chain' ? 'Type your guess for the 5th first.' : 'Add an item to test first.');
     if (fifth.error) return setError(fifth.error);
     const key = itemKey(rule.domain, fifth.item);
     const seen = game.entries.some((e) => e.kind !== 'guess' && itemKey(rule.domain, e.item) === key);
@@ -132,7 +133,7 @@ export function Play({ rule, storageKey, seed, title, onFinish, renderResult }: 
             >
               <FifthInput domain={rule.domain} resetKey={fifthKey} onChange={setFifth} disabled={busy} />
               <button type="submit" className="btn" disabled={busy}>
-                Test ›
+                {rule.domain === 'chain' ? 'Guess ›' : 'Test ›'}
               </button>
             </form>
           ) : (

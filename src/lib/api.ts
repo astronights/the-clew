@@ -1,3 +1,5 @@
+import type { ChainPuzzle } from './chain';
+
 export type Verdict = 'correct' | 'close' | 'wrong';
 
 export interface JudgeResponse {
@@ -43,6 +45,18 @@ export async function fetchDistribution(puzzleNo: number): Promise<number[] | nu
     if (!res.ok) return null;
     const data = (await res.json()) as { counts?: number[] };
     return Array.isArray(data.counts) && data.counts.length === 6 ? data.counts : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Today's approved AI puzzle, or null to play the built-in rule. */
+export async function fetchPuzzle(puzzleNo: number): Promise<ChainPuzzle | null> {
+  try {
+    const res = await fetch(`/api/puzzle?no=${puzzleNo}`);
+    if (!res.ok) return null;
+    const data = (await res.json()) as { puzzle?: ChainPuzzle };
+    return data.puzzle && Array.isArray(data.puzzle.clues) ? data.puzzle : null;
   } catch {
     return null;
   }

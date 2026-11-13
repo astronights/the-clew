@@ -3,6 +3,8 @@ import type { Domain, Rule } from '../rules/types';
 import { CLUE_COUNT, type Entry } from '../lib/game';
 import { ItemView, VerdictBadge } from './ItemView';
 
+const ORDINAL = ['1st', '2nd', '3rd', '4th'];
+
 function Tag({ children, variant = '', label }: { children: ReactNode; variant?: string; label?: string }) {
   return (
     <div className={`tag ${variant}`}>
@@ -23,6 +25,7 @@ interface Props {
 /** Clues and the player's own 5ths, hung like tags on one thread. */
 export function Thread({ entries, domain, rule, revealed, over }: Props) {
   const initial = useRef(entries.length);
+  const chain = domain === 'chain';
   const pending = Array.from({ length: CLUE_COUNT - revealed }, (_, i) => revealed + i);
   return (
     <ol className="thread" aria-label="Clues, your tested items and your guesses">
@@ -31,18 +34,18 @@ export function Thread({ entries, domain, rule, revealed, over }: Props) {
         if (e.kind === 'clue')
           return (
             <li key={i} className="knot-row" style={style}>
-              <Tag variant={e.pass ? 'is-pass' : 'is-fail'} label={`Clue ${e.index + 1}`}>
+              <Tag variant={chain ? 'is-pass' : e.pass ? 'is-pass' : 'is-fail'} label={`Clue ${e.index + 1}`}>
                 <ItemView domain={domain} item={e.item} />
-                <VerdictBadge pass={e.pass} />
+                {chain ? <span className="verdict">{ORDINAL[e.index]}</span> : <VerdictBadge pass={e.pass} />}
               </Tag>
             </li>
           );
         if (e.kind === 'test')
           return (
             <li key={i} className="knot-row is-mine" style={style}>
-              <Tag variant={`is-mine ${e.pass ? 'is-pass' : 'is-fail'}`} label="Your test">
+              <Tag variant={`is-mine ${e.pass ? 'is-pass' : 'is-fail'}`} label={chain ? 'Your 5th' : 'Your test'}>
                 <ItemView domain={domain} item={e.item} />
-                <VerdictBadge pass={e.pass} />
+                <VerdictBadge pass={e.pass} chain={chain} />
               </Tag>
             </li>
           );
@@ -59,7 +62,7 @@ export function Thread({ entries, domain, rule, revealed, over }: Props) {
           <li key={`p${idx}`} className="knot-row is-unused">
             <Tag variant={`is-unused ${rule.clues[idx].pass ? 'is-pass' : 'is-fail'}`} label={`Clue ${idx + 1} · unused`}>
               <ItemView domain={domain} item={rule.clues[idx].item} size="sm" />
-              <VerdictBadge pass={rule.clues[idx].pass} />
+              {chain ? <span className="verdict">{ORDINAL[idx]}</span> : <VerdictBadge pass={rule.clues[idx].pass} />}
             </Tag>
           </li>
         ) : (

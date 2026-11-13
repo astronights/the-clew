@@ -35,9 +35,13 @@ Pass/fail is always deterministic TypeScript. AI (Gemini) is only used to judge 
 ```
 api/
   judge.ts            POST /api/judge  {ruleId, guess} → {verdict, hint}
+  puzzle.ts           GET  /api/puzzle?no=N → today's approved AI puzzle (404 = play the built-in rule)
+  admin/puzzles.ts    GET/POST the week's drafts; approve / reject / save (ADMIN_TOKEN)
+  admin/generate.ts   POST one draft with Gemini + Google Search (ADMIN_TOKEN)
   result.ts           POST /api/result {puzzleNo, solvedOnClue}; GET /api/result?puzzle=N
   _lib/               db client, Gemini prompt + sanitising, rate limit, http helpers
-db/migrations/        SQL migrations (001_init.sql)
+db/migrations/        SQL migrations (001_init.sql, 002_puzzles.sql)
+prompts/              puzzle-generator.md — the editable puzzle-writing prompt
 scripts/
   validate-rules.ts   npm run validate-rules
   gen-clues.ts        npm run gen-clues (authoring helper)
@@ -97,7 +101,27 @@ Rules like *prime* (17%), *palindrome* (11%) or *strictly increasing* (14%) are 
 
 If the judge is unreachable, the guess does not cost a clue.
 
-## Local development
+## "What comes next" puzzles and the admin desk
+
+Besides the 40 built-in rules, the game can play AI-written puzzles in the style of the *Only Connect*
+Sequences round: four items of a well-known progression (planets, Greek letters, Apollo missions…), and the
+player names the 5th and the rule.
+
+- **Writing:** `/api/admin/generate` sends [`prompts/puzzle-generator.md`](prompts/puzzle-generator.md) to Gemini
+  with **Google Search** enabled, so it can check facts and pick up a topical hook from the week's news. Edit the
+  markdown to change the house style; no code changes needed. Recent and upcoming connections are passed in so it
+  doesn't repeat itself, and difficulty follows the weekday (gentle Monday, toughest Saturday).
+- **Checking:** every draft is validated in code (`src/lib/chain.ts`): exactly 4 different clues, the answer isn't a
+  clue, the accepted answers include it, enough rule phrasings, a difficulty 1–5. Drafts with problems can't be approved.
+- **Reviewing:** open **`/admin`** (not linked anywhere, `noindex`) and enter `ADMIN_TOKEN`. It shows today plus the
+  next 7 days. **Write puzzles for empty days** drafts the whole week; then per day you can **Approve**, **Reject**,
+  **Edit** the JSON, or **Rewrite** with an optional note to the writer ("make it about music").
+- **Playing:** an approved puzzle replaces that day's built-in rule; days without one play the built-in rule.
+  `/api/puzzle` only ever serves today or earlier, so upcoming puzzles can't be peeked at.
+  The player's 5th is matched against `acceptedAnswers` by code (case, accents, punctuation and a leading "the"
+  are ignored, any script works). Only the rule guess goes to the AI judge.
+
+
 
 ```bash
 npm install
@@ -121,12 +145,14 @@ npm run build           # typecheck + production build
 | `GEMINI_API_KEY` | for prod | Google AI Studio key used by `/api/judge`. |
 | `GEMINI_MODEL` | no | Model name, default `gemini-2.5-flash`. |
 | `IP_HASH_SALT` | recommended | Salt for hashing IPs in `rate_limit`. Raw IPs are never stored. |
+| `ADMIN_TOKEN` | for `/admin` | Password for the puzzle desk (12+ characters). Admin is off when unset. |
+| `GEMINI_GENERATOR_MODEL` | no | A different model just for writing puzzles (defaults to `GEMINI_MODEL`). |
 
 ## Neon setup
 
 1. Create a project at [neon.tech](https://neon.tech) and copy the **pooled** connection string.
 2. Put it in `.env` as `DATABASE_URL=...`.
-3. `npm run db:migrate` — creates `verdict_cache`, `daily_results`, `rate_limit` (and a `schema_migrations` table).
+3. `npm run db:migrate` — creates `verdict_cache`, `daily_results`, `rate_limit`, `puzzles` (and a `schema_migrations` table).
 4. `npm run db:seed` — pre-caches every accepted phrasing as `correct`. `npm run db:seed -- --demo` also adds fake results for today's puzzle so the "x% of players needed more clues" line has data.
 
 Tables (anonymous, no PII):
@@ -134,13 +160,15 @@ Tables (anonymous, no PII):
 - `verdict_cache(rule_id, normalized_guess, verdict, hint, created_at)`
 - `daily_results(puzzle_no, solved_on_clue 0–4, count)` — 0 = unsolved; incremented by `POST /api/result`
 - `rate_limit(ip_hash, "window", count, updated_at)` — hourly windows; old rows are pruned automatically
+- `puzzles(puzzle_no, puzzle_date, status draft|approved|rejected, data jsonb, errors, note)` — AI puzzles from `/admin`
 
 ## Deploy to Vercel
 
 1. Push this repo to GitHub and import it in Vercel. The framework preset is Vite (`vercel.json` sets build command and output dir).
-2. Add `DATABASE_URL`, `GEMINI_API_KEY`, `GEMINI_MODEL` (optional) and `IP_HASH_SALT` in **Project → Settings → Environment Variables**. Or use Vercel's Neon integration, which sets `DATABASE_URL` for you.
+2. Add `DATABASE_URL`, `GEMINI_API_KEY`, `GEMINI_MODEL` (optional), `IP_HASH_SALT` and `ADMIN_TOKEN` in **Project → Settings → Environment Variables**. Or use Vercel's Neon integration, which sets `DATABASE_URL` for you.
 3. Run `npm run db:migrate && npm run db:seed` once against the production database.
-4. Deploy. Files in `api/` become functions; `api/_lib` is shared code, not routes.
+4. Deploy. Files in `api/` become functions; `api/_lib` is shared code, not routes. `vercel.json` bundles `prompts/` with the generator and gives it 60 s.
+5. Each week, open `/admin`, write the week's puzzles, review and approve.
 
 The package is CommonJS on purpose (no `"type": "module"`), so Vercel compiles `/api` to CommonJS and the extensionless imports into `src/` resolve.
 

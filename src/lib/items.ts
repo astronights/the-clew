@@ -19,7 +19,7 @@ export const WORD_MIN = 2;
 export const WORD_MAX = 12;
 
 /** What one item is called on each kind of day. */
-export const ITEM_NOUN: Record<Domain, string> = { numbers: 'number', sequences: 'sequence', tiles: 'row', words: 'word' };
+export const ITEM_NOUN: Record<Domain, string> = { numbers: 'number', sequences: 'sequence', tiles: 'row', words: 'word', chain: 'answer' };
 
 /** Example rule guesses for the text box. None of them is a real rule. */
 export const RULE_EXAMPLE: Record<Domain, string> = {
@@ -27,6 +27,7 @@ export const RULE_EXAMPLE: Record<Domain, string> = {
   sequences: 'e.g. the numbers keep going up',
   tiles: 'e.g. it has a blue tile',
   words: "e.g. it's the name of an animal",
+  chain: 'e.g. Bond films in order',
 };
 
 /**
@@ -46,6 +47,23 @@ export function normalizeWord(raw: string): { word: string; rejected: string[] }
   return { word, rejected };
 }
 
+/**
+ * Canonical form of a free-text answer, so "The Moon", "moon" and "Moon!" match:
+ * accents dropped, lowercase, a leading "the/a/an" dropped, only letters, digits and
+ * single spaces kept. Works for any script (letters are kept by Unicode class).
+ */
+export function normalizeAnswer(raw: string): string {
+  return raw
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .replace(/^(the|a|an) /, '')
+    .replace(/\s+/g, ' ');
+}
+
 /** Stable string key for an item, used for de-duplication and caching. */
 export function itemKey(domain: Domain, item: Item): string {
   switch (domain) {
@@ -57,6 +75,8 @@ export function itemKey(domain: Domain, item: Item): string {
       return (item as TileItem).map((t) => t.c + SHAPE_CODE[t.s]).join('-');
     case 'words':
       return (item as string).toLowerCase();
+    case 'chain':
+      return normalizeAnswer(item as string);
   }
 }
 
@@ -75,6 +95,8 @@ export function describeItem(domain: Domain, item: Item): string {
       return (item as TileItem).map((t) => `${COLOUR_NAMES[t.c]} ${t.s}`).join(', ');
     case 'words':
       return (item as string).toUpperCase();
+    case 'chain':
+      return String(item);
   }
 }
 
@@ -102,6 +124,13 @@ export function validateItem(domain: Domain, item: Item): string | null {
       const w = item as string;
       if (typeof w !== 'string' || !/^[a-z]+$/i.test(w)) return 'Use letters only.';
       if (w.length < WORD_MIN || w.length > WORD_MAX) return `Words must be ${WORD_MIN}–${WORD_MAX} letters.`;
+      return null;
+    }
+    case 'chain': {
+      const t = String(item ?? '').trim();
+      if (!t) return 'Type your answer.';
+      if (t.length > 60) return 'Keep it under 60 characters.';
+      if (!normalizeAnswer(t)) return 'Use at least one letter or number.';
       return null;
     }
   }
@@ -135,7 +164,7 @@ export function candidatePool(domain: Domain): Item[] {
       }));
       pool.push(row);
     }
-  } else {
+  } else if (domain === 'words') {
     pool = Array.from(new Set(WORDS.map((w) => w.toLowerCase())));
   }
   poolCache.set(domain, pool);

@@ -51,6 +51,8 @@ export function ItemView({ domain, item, size = 'md' }: { domain: Domain; item: 
       ))
     ) : domain === 'words' ? (
       (item as string).toUpperCase()
+    ) : domain === 'chain' ? (
+      String(item)
     ) : (
       String(item)
     );
@@ -62,11 +64,12 @@ export function ItemView({ domain, item, size = 'md' }: { domain: Domain; item: 
 }
 
 /** "✓ FITS" / "✗ DOESN'T": a symbol and a word, never colour alone. */
-export function VerdictBadge({ pass }: { pass: boolean }) {
+export function VerdictBadge({ pass, chain = false }: { pass: boolean; chain?: boolean }) {
+  const [yes, no, srYes, srNo] = chain ? ["That's next", 'Not next', '', ''] : ['Fits', "Doesn't", ' the rule', ' fit the rule'];
   return (
     <span className={`verdict ${pass ? 'is-pass' : 'is-fail'}`}>
-      <span aria-hidden="true">{pass ? '✓' : '✗'}</span> {pass ? 'Fits' : "Doesn't"}
-      <span className="sr-only">{pass ? ' the rule' : ' fit the rule'}</span>
+      <span aria-hidden="true">{pass ? '✓' : '✗'}</span> {pass ? yes : no}
+      <span className="sr-only">{pass ? srYes : srNo}</span>
     </span>
   );
 }

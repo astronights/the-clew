@@ -1,4 +1,8 @@
-export type Domain = 'numbers' | 'sequences' | 'tiles' | 'words';
+/**
+ * Built-in rule domains, plus 'chain': an AI-written, admin-approved
+ * "what comes next" puzzle (Only Connect Sequences style). Chain items are free text.
+ */
+export type Domain = 'numbers' | 'sequences' | 'tiles' | 'words' | 'chain';
 
 export type Colour = 'R' | 'B' | 'G' | 'Y';
 export type Shape = 'circle' | 'triangle' | 'square' | 'star';
@@ -19,6 +23,7 @@ export interface ItemOf {
   sequences: SequenceItem;
   tiles: TileItem;
   words: WordItem;
+  chain: string;
 }
 
 /** Any predicate we can reason about: playable rules and decoy-only rules. */

@@ -12,7 +12,7 @@ function devApi(): Plugin {
     configureServer(server: ViteDevServer) {
       server.middlewares.use(async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
         const url = new URL(req.url ?? '/', 'http://localhost');
-        const m = url.pathname.match(/^\/api\/([a-z-]+)$/);
+        const m = url.pathname.match(/^\/api\/([a-z-]+(?:\/[a-z-]+)?)$/);
         if (!m) return next();
         try {
           const mod = (await server.ssrLoadModule(`/api/${m[1]}.ts`)) as Record<string, (r: Request) => Promise<Response>>;

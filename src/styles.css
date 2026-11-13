@@ -587,6 +587,10 @@ input {
   font-weight: 600;
   margin-bottom: 14px;
 }
+.result-expl {
+  margin: -8px 0 14px;
+  color: var(--ink-2);
+}
 .trail {
   list-style: none;
   padding: 0;
@@ -863,4 +867,108 @@ input {
     animation-delay: 0ms !important;
     transition: none !important;
   }
+}
+
+/* ---------- admin ---------- */
+.loading {
+  margin-top: 40px;
+}
+.admin {
+  padding-bottom: 40px;
+  display: grid;
+  gap: 12px;
+}
+.admin h2 {
+  margin: 0;
+}
+.admin-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.admin-left {
+  text-align: left;
+}
+.admin-small {
+  font-size: 0.85rem;
+  color: var(--ink-2);
+  margin: 0 0 6px;
+}
+.day {
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+  padding: 12px;
+  background: var(--tag);
+}
+.day.is-approved {
+  border-color: var(--right);
+  box-shadow: inset 4px 0 0 var(--right);
+}
+.day.is-rejected,
+.day.is-empty {
+  border-style: dashed;
+}
+.day-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.chip {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.status-approved {
+  border-color: var(--right);
+  color: var(--right);
+}
+.status-rejected,
+.status-empty {
+  color: var(--ink-3);
+  border-color: var(--line);
+}
+.day-clues {
+  margin: 0 0 10px;
+  padding-left: 1.4rem;
+  font-family: var(--mono);
+  font-size: 0.95rem;
+}
+.day-clues li {
+  padding: 2px 0;
+}
+.day-clues .is-answer {
+  color: var(--thread);
+  font-weight: 600;
+}
+.day-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+.day-actions .btn {
+  height: 42px;
+}
+.day-regen {
+  flex: 1 1 100%;
+}
+.admin-json {
+  height: 320px;
+  padding: 10px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  resize: vertical;
+  margin-bottom: 8px;
+}
+details summary {
+  cursor: pointer;
 }

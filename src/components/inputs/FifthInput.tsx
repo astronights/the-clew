@@ -22,6 +22,7 @@ const LABEL: Record<Domain, string> = {
   sequences: 'Test three numbers · do they fit?',
   tiles: 'Test a row · does it fit?',
   words: 'Test a word · does it fit?',
+  chain: 'Guess the 5th · what comes next?',
 };
 
 export function FifthInput({ domain, resetKey, onChange, disabled }: Props) {
@@ -34,6 +35,7 @@ export function FifthInput({ domain, resetKey, onChange, disabled }: Props) {
       {domain === 'sequences' && <SequenceField key={resetKey} onChange={onChange} disabled={disabled} />}
       {domain === 'words' && <WordField key={resetKey} onChange={onChange} disabled={disabled} />}
       {domain === 'tiles' && <TileField key={resetKey} onChange={onChange} disabled={disabled} />}
+      {domain === 'chain' && <AnswerField key={resetKey} onChange={onChange} disabled={disabled} />}
     </div>
   );
 }
@@ -115,6 +117,28 @@ function WordField({ onChange, disabled }: FieldProps) {
         const { word, rejected } = normalizeWord(e.target.value);
         if (rejected.length) onChange({ item: null, error: `Letters only, please. Can't use ${rejected.map((c) => `“${c}”`).join(' ')}.` });
         else onChange(word ? { item: word, error: validateItem('words', word) } : { item: null, error: null });
+      }}
+    />
+  );
+}
+
+/** Free text in any script; matched against the accepted answers after normalising. */
+function AnswerField({ onChange, disabled }: FieldProps) {
+  const [v, setV] = useState('');
+  return (
+    <input
+      className="input"
+      aria-labelledby="fifth-label"
+      value={v}
+      maxLength={60}
+      autoComplete="off"
+      spellCheck={false}
+      placeholder="what comes 5th?"
+      disabled={disabled}
+      onChange={(e) => {
+        setV(e.target.value);
+        const t = e.target.value.trim();
+        onChange(t ? { item: t, error: validateItem('chain', t) } : { item: null, error: null });
       }}
     />
   );

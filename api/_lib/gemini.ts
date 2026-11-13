@@ -13,25 +13,33 @@ const DOMAIN_HELP: Record<Rule['domain'], string> = {
   sequences: 'Items are sequences of three whole numbers (0–99 each), e.g. [3, 8, 12].',
   tiles: 'Items are rows of 1–5 tiles. Each tile has a colour (R=red, B=blue, G=green, Y=yellow) and a shape (circle, triangle, square, star).',
   words: 'Items are single English words made of letters a–z.',
+  chain: 'This is a "what comes next" sequence: four items in a fixed, well-known order; the player names the rule behind the order.',
 };
 
-export function buildSystemPrompt(rule: Rule): string {
-  const decoys = decoysOf(rule)
-    .map((d) => `- ${d.description}`)
-    .join('\n');
+/** Extra facts for puzzles whose rule isn't code, e.g. the sequence and its answer. */
+export interface JudgeContext {
+  detail?: string;
+}
+
+export function buildSystemPrompt(rule: Rule, ctx: JudgeContext = {}): string {
+  const decoys =
+    decoysOf(rule)
+      .map((d) => `- ${d.description}`)
+      .join('\n') || '- (none listed)';
+  const definition = ctx.detail ?? rule.predicate.toString();
   return `You are the strict but friendly judge of "The Clew", a daily deduction puzzle.
 Players see items marked as passing or failing a secret rule and try to name the rule.
 
 DOMAIN: ${DOMAIN_HELP[rule.domain]}
 SECRET RULE: ${rule.description}
-AUTHORITATIVE IMPLEMENTATION (the true definition; the description above is a summary):
-${rule.predicate.toString()}
+AUTHORITATIVE DEFINITION (the description above is a summary):
+${definition}
 
 NEAR-MISS RULES THAT ARE NOT THE ANSWER:
 ${decoys}
 
 TASK: Decide whether the player's guess describes the secret rule.
-- "correct": the guess would classify (practically) every item in the domain the same way as the implementation. Different wording, synonyms or an equivalent formulation are fine.
+- "correct": the guess means the same rule. For item rules: it would classify (practically) every item the same way as the definition. For sequences: it names the same progression (e.g. "planets from the sun" for Mercury, Venus, Earth, Mars). Different wording, synonyms or an equivalent formulation are fine.
 - "close": the guess overlaps a lot but is too broad, too narrow, a near-miss rule above, or a special case.
 - "wrong": anything else, including empty, joking or off-topic guesses.
 
@@ -70,7 +78,7 @@ export function sanitizeHint(rule: Rule, verdict: Verdict, hint: unknown): strin
   return leaks ? GENERIC_HINTS[verdict] : clean;
 }
 
-export async function askGemini(rule: Rule, guess: string): Promise<Judgement> {
+export async function askGemini(rule: Rule, guess: string, ctx: JudgeContext = {}): Promise<Judgement> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error('GEMINI_API_KEY is not set');
   const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
@@ -82,7 +90,7 @@ export async function askGemini(rule: Rule, guess: string): Promise<Judgement> {
       signal: ctrl.signal,
       headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: buildSystemPrompt(rule) }] },
+        systemInstruction: { parts: [{ text: buildSystemPrompt(rule, ctx) }] },
         contents: [{ role: 'user', parts: [{ text: `<guess>${sanitizeGuess(guess)}</guess>` }] }],
         generationConfig: {
           temperature: 0,

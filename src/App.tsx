@@ -4,6 +4,9 @@ import { load, save } from './lib/storage';
 import { puzzleNumber } from './lib/daily';
 import { StatsScreen } from './screens/Stats';
 import { Today } from './screens/Today';
+import { Admin } from './screens/Admin';
+
+const IS_ADMIN = typeof location !== 'undefined' && location.pathname.replace(/\/+$/, '') === '/admin';
 
 type Theme = 'system' | 'light' | 'dark';
 function ThemeIcon({ theme }: { theme: Theme }) {
@@ -32,7 +35,7 @@ const NEXT_THEME: Record<Theme, Theme> = { system: 'light', light: 'dark', dark:
 
 export function App() {
   const [stats, setStats] = useState(false);
-  const [help, setHelp] = useState(() => !load<boolean>('clew:seenHelp', false));
+  const [help, setHelp] = useState(() => !IS_ADMIN && !load<boolean>('clew:seenHelp', false));
   const [theme, setTheme] = useState<Theme>(() => load<Theme>('clew:theme', 'system'));
   const [today, setToday] = useState(() => puzzleNumber());
 
@@ -80,9 +83,7 @@ export function App() {
         </div>
       </header>
 
-      <main className="screen">
-        <Today key={today} puzzleNo={today} />
-      </main>
+      <main className="screen">{IS_ADMIN ? <Admin /> : <Today key={today} puzzleNo={today} />}</main>
 
       {stats && <StatsScreen today={today} onClose={() => setStats(false)} />}
       {help && <HowToPlay onClose={closeHelp} />}
