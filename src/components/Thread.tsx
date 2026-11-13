@@ -33,7 +33,7 @@ export function Thread({ puzzle, revealed, over, guesses }: Props) {
           <li key={i} className={`knot-row ${shown ? '' : 'is-unused'}`} style={style}>
             <div className={`tag ${shown ? '' : 'is-unused'} ${guess?.pass ? 'guess-right' : ''}`}>
               <span className="tag-label">
-                {shown ? `Clue ${i + 1}` : `Clue ${i + 1} · unused`}
+                Clue {i + 1}
               </span>
               <span className={`item-text ${shown ? '' : 'item-sm'}`}>{puzzle.rows[i]}</span>
               {guess?.pass && (
