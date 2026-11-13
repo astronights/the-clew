@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import type { Rule } from '../rules/types';
+import type { Puzzle } from '../lib/puzzle';
 import { msUntilNextPuzzle } from '../lib/daily';
-import { CLUE_COUNT, type Outcome } from '../lib/game';
+import { ROWS, type Outcome } from '../lib/game';
 import { neededMorePercent, shareText, solvedPercent } from '../lib/share';
 
 function Countdown() {
@@ -19,19 +19,17 @@ function Countdown() {
   );
 }
 
-const TRAIL_TEXT: Record<Outcome, string> = { next: 'next', test: 'tested', miss: 'wrong rule', solved: 'got it ✓' };
+const TRAIL_TEXT: Record<Outcome, string> = { next: 'next', test: 'guessed', miss: 'wrong rule', solved: 'got it ✓' };
 
 interface Props {
-  rule: Rule;
+  puzzle: Puzzle;
   solvedOn: number;
   outcomes: Outcome[];
   puzzleNo?: number;
   counts?: number[] | null;
-  /** For "what comes next" puzzles: the 5th and why. */
-  reveal?: { answer: string; explanation: string };
 }
 
-export function ResultCard({ rule, solvedOn, outcomes, puzzleNo, counts, reveal }: Props) {
+export function ResultCard({ puzzle, solvedOn, outcomes, puzzleNo, counts }: Props) {
   const [status, setStatus] = useState('');
   const solved = solvedOn > 0;
   const text = shareText(puzzleNo ?? 0, solvedOn, outcomes);
@@ -52,19 +50,19 @@ export function ResultCard({ rule, solvedOn, outcomes, puzzleNo, counts, reveal 
 
   return (
     <section className="result" aria-live="polite">
-      <h2 className="result-head">{solved ? (solvedOn === 1 ? 'First clue. Wow.' : `Untangled on clue ${solvedOn} of ${CLUE_COUNT}.`) : 'Tangled today.'}</h2>
+      <h2 className="result-head">{solved ? (solvedOn === 1 ? 'First clue. Wow.' : `Untangled on clue ${solvedOn} of ${ROWS}.`) : 'Tangled today.'}</h2>
       <p className="eyebrow">The rule</p>
-      <p className="result-rule">{rule.description}</p>
-      {reveal && <p className="result-expl">{reveal.explanation}</p>}
+      <p className="result-rule">{puzzle.connection}</p>
+      <p className="result-expl">{puzzle.explanation}</p>
 
       <ol className="trail" aria-label="How each clue went">
-        {Array.from({ length: CLUE_COUNT }, (_, i) => {
+        {Array.from({ length: ROWS }, (_, i) => {
           const o = outcomes[i];
           return (
             <li key={i} className={`trail-step ${o ? `is-${o}` : 'is-unused'}`}>
               clue {i + 1}
               <br />
-              {o ? (reveal && o === 'test' ? 'guessed' : TRAIL_TEXT[o]) : '—'}
+              {o ? TRAIL_TEXT[o] : '—'}
             </li>
           );
         })}

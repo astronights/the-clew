@@ -1,5 +1,4 @@
-import type { Rule } from '../rules/types';
-import { normalizeAnswer } from './items';
+import { normalizeAnswer } from './answer';
 
 /**
  * An AI-written, admin-approved "what comes next" puzzle in the style of
@@ -57,19 +56,6 @@ export function matchesAnswer(p: Pick<ChainPuzzle, 'answer' | 'acceptedAnswers'>
   return !!g && [p.answer, ...p.acceptedAnswers].some((a) => normalizeAnswer(a) === g);
 }
 
-/**
- * Is `guess` right for a sequence row? It must equal one of the row's accepted forms; for rows
- * without explicit alternatives, the guess's whole words appearing in the clue also counts
- * ("Beta" for "Beta version").
- */
-export function matchesRow(accepted: string[], guess: string, explicit: boolean): boolean {
-  const g = normalizeAnswer(guess);
-  if (!g) return false;
-  if (accepted.some((a) => normalizeAnswer(a) === g)) return true;
-  if (explicit || g.replace(/ /g, '').length < 3) return false;
-  return accepted.some((a) => ` ${normalizeAnswer(a)} `.includes(` ${g} `));
-}
-
 /** Deterministic checks a puzzle must pass before it can be approved. */
 export function validateChain(p: Partial<ChainPuzzle> | null | undefined): string[] {
   const e: string[] = [];
@@ -100,18 +86,4 @@ export function validateChain(p: Partial<ChainPuzzle> | null | undefined): strin
   if (!str(p.category)) e.push('category is missing');
   if (!Number.isInteger(p.difficulty) || p.difficulty! < 1 || p.difficulty! > 5) e.push('difficulty must be 1–5');
   return e;
-}
-
-/** Turn an approved puzzle into a Rule the game can play: the 4 clues and the answer are the 5 rows. */
-export function chainToRule(puzzleNo: number, p: ChainPuzzle): Rule {
-  return {
-    id: chainRuleId(puzzleNo),
-    domain: 'chain',
-    description: p.connection,
-    predicate: (item) => matchesAnswer(p, String(item)),
-    acceptedPhrasings: p.acceptedPhrasings,
-    decoyRuleIds: [],
-    clues: [...p.clues, p.answer].map((c) => ({ item: c, pass: true })),
-    rowAnswers: [...p.clues.map((c, i) => [c, ...(p.clueAnswers?.[i] ?? [])]), [p.answer, ...p.acceptedAnswers]],
-  };
 }

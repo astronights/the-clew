@@ -383,6 +383,14 @@ input {
   letter-spacing: 0.06em;
   overflow-wrap: anywhere;
 }
+.tag .item-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 1.25rem;
+}
+.tag .item-text.item-sm {
+  font-size: 1rem;
+}
 .item-sm.item-text {
   font-size: 1.05rem;
 }
@@ -732,8 +740,18 @@ input {
 .howto-example {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 18px;
+  align-items: center;
+  gap: 6px;
   margin: 4px 0 6px;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--thread);
+}
+.howto-example span {
+  padding: 3px 8px;
+  border: 1.5px solid var(--ink);
+  border-radius: 3px 9px 9px 3px;
+  color: var(--ink);
 }
 .howto-pair {
   display: inline-flex;

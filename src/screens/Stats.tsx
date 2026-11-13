@@ -1,4 +1,4 @@
-import { CLUE_COUNT } from '../rules/types';
+import { ROWS as CLUE_COUNT } from '../lib/puzzle';
 import { useEffect } from 'react';
 import { displayedStreak, loadStats } from '../lib/stats';
 

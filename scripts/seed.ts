@@ -1,11 +1,11 @@
 /**
- * Seeds the verdict cache with every rule's accepted phrasings (as "correct"),
+ * Seeds the verdict cache with every built-in puzzle's accepted phrasings (as "correct"),
  * so common guesses never hit Gemini.
  *   npm run db:seed            # phrasings only
  *   npm run db:seed -- --demo  # also fake results for today's puzzle (local testing)
  */
 import { neon } from '@neondatabase/serverless';
-import { RULES } from '../src/rules';
+import { LIBRARY } from '../src/puzzles/library';
 import { normalizeGuess } from '../src/lib/fuzzy';
 import { puzzleNumber } from '../src/lib/daily';
 import { loadEnv } from './env';
@@ -20,14 +20,14 @@ const sql = neon(url);
 
 async function main() {
   let n = 0;
-  for (const rule of RULES) {
-    for (const phrase of [rule.description, ...rule.acceptedPhrasings]) {
+  for (const puzzle of LIBRARY) {
+    for (const phrase of [puzzle.connection, ...puzzle.acceptedPhrasings]) {
       const norm = normalizeGuess(phrase);
       if (!norm) continue;
       await sql.query(
         `insert into verdict_cache (rule_id, normalized_guess, verdict, hint) values ($1, $2, 'correct', 'Nice thinking — prove it!')
          on conflict (rule_id, normalized_guess) do nothing`,
-        [rule.id, norm],
+        [`lib:${puzzle.id}`, norm],
       );
       n++;
     }

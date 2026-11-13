@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { validateChain, WEEKDAY_DIFFICULTY, type ChainPuzzle, type StoredPuzzle } from '../lib/chain';
-import { dateOfPuzzle, puzzleNumber, ruleForPuzzle } from '../lib/daily';
+import { dateOfPuzzle, libraryPuzzleFor, puzzleNumber } from '../lib/daily';
 
 const TOKEN_KEY = 'clew:admin-token';
 const DAYS = 8; // today + the next 7
@@ -129,7 +129,7 @@ export function Admin() {
         </button>
       </div>
       <p className="note admin-left">
-        {approved} of {DAYS} days approved. Approved puzzles replace the built-in rule for that day; other days play the built-in rule.
+        {approved} of {DAYS} days approved. Approved puzzles replace that day's built-in puzzle; other days play a built-in one.
       </p>
       <button className="btn btn-primary btn-block" onClick={generateMissing} disabled={Object.keys(busy).length > 0}>
         Write puzzles for empty days
@@ -162,7 +162,7 @@ function DayCard({ no, isToday, stored, busy, token, onGenerate, onAct }: CardPr
   const [extra, setExtra] = useState('');
   const p = stored?.data;
   const status = stored?.status ?? 'empty';
-  const fallback = ruleForPuzzle(no);
+  const fallback = libraryPuzzleFor(no);
   const parsed = (() => {
     try {
       return JSON.parse(text) as ChainPuzzle;
@@ -186,7 +186,7 @@ function DayCard({ no, isToday, stored, busy, token, onGenerate, onAct }: CardPr
         <span className={`chip status-${status}`}>{status}</span>
       </header>
 
-      {!p && <p className="note admin-left">No AI puzzle yet. If none is approved, this day plays the built-in rule: “{fallback.description}”</p>}
+      {!p && <p className="note admin-left">No AI puzzle yet. If none is approved, this day plays the built-in puzzle: “{fallback.connection}” ({fallback.clues.join(', ')} → {fallback.answer})</p>}
 
       {p && !editing && (
         <div className="day-body">

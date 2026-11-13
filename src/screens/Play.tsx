@@ -1,24 +1,15 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import type { Domain, Rule } from '../rules/types';
-import { FifthInput, type FifthValue } from '../components/inputs/FifthInput';
+import { GuessInput, type GuessValue } from '../components/GuessInput';
 import { Thread } from '../components/Thread';
 import { confetti } from '../components/confetti';
 import { judgeRemote, JudgeUnavailable } from '../lib/api';
 import { matchesAnyPhrasing } from '../lib/fuzzy';
-import { canTest, CLUE_COUNT, giveUp, guessesByRow, guessRule, isLastClue, isOver, newGame, next, testItem, type GameState } from '../lib/game';
-import { describeItem, itemKey, RULE_EXAMPLE } from '../lib/items';
+import { canGuess, giveUp, guessesByRow, guessNext, guessRule, isLastRow, isOver, newGame, next, ROWS, type GameState } from '../lib/game';
+import type { Puzzle } from '../lib/puzzle';
 import { load, save } from '../lib/storage';
 
-export const DOMAIN_LABEL: Record<Domain, string> = {
-  numbers: 'numbers',
-  sequences: 'sequences',
-  tiles: 'tiles',
-  words: 'words',
-  chain: 'what comes next',
-};
-
 interface Props {
-  rule: Rule;
+  puzzle: Puzzle;
   storageKey: string;
   seed: string;
   /** Shown top-left, e.g. "No. 45". */
@@ -28,29 +19,31 @@ interface Props {
   renderResult: (state: GameState) => ReactNode;
 }
 
-function restore(rule: Rule, key: string, seed: string): GameState {
+function restore(p: Puzzle, key: string, seed: string): GameState {
   const saved = load<GameState | null>(key, null);
-  const valid = saved && saved.ruleId === rule.id && saved.seed === seed && Array.isArray(saved.entries) && Array.isArray(saved.outcomes);
-  return valid ? saved : newGame(rule, seed);
+  const valid = saved && saved.puzzleId === p.id && saved.seed === seed && Array.isArray(saved.entries) && Array.isArray(saved.outcomes);
+  return valid ? saved : newGame(p, seed);
 }
 
-export function Play({ rule, storageKey, seed, title, onFinish, renderResult }: Props) {
-  const [game, setGame] = useState<GameState>(() => restore(rule, storageKey, seed));
-  const [fifth, setFifth] = useState<FifthValue>({ item: null, error: null });
-  const [fifthKey, setFifthKey] = useState(0);
+const RULE_EXAMPLE = 'e.g. Bond films in order';
+
+export function Play({ puzzle, storageKey, seed, title, onFinish, renderResult }: Props) {
+  const [game, setGame] = useState<GameState>(() => restore(puzzle, storageKey, seed));
+  const [guess, setGuess] = useState<GuessValue>({ text: '', error: null });
+  const [guessKey, setGuessKey] = useState(0);
   const [ruleText, setRuleText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [testError, setTestError] = useState<string | null>(null);
-  const [announce, setAnnounce] = useState('');
+  const [guessError, setGuessError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [announce, setAnnounce] = useState('');
   const finishedRef = useRef(isOver(game));
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => save(storageKey, game), [storageKey, game]);
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [game.entries.length, game.status]);
+  }, [game.revealed, game.status]);
   useEffect(() => {
     if (isOver(game) && !finishedRef.current) {
       finishedRef.current = true;
@@ -60,92 +53,85 @@ export function Play({ rule, storageKey, seed, title, onFinish, renderResult }: 
   }, [game, onFinish]);
 
   const over = isOver(game);
-  const last = isLastClue(game);
-  const typed = fifth.item !== null || fifth.error !== null;
+  const last = isLastRow(game);
+  const typed = guess.text !== '';
 
-  const apply = (next: GameState, prefix = '') => {
-    const newest = next.entries[next.entries.length - 1];
+  const apply = (nextState: GameState, prefix = '') => {
     let msg = prefix;
-    if (next.status === 'solved') msg += `That's it! Solved on clue ${next.solvedOn}.`;
-    else if (next.status === 'failed') msg += `The rule was: ${rule.description}`;
-    else if (newest?.kind === 'clue') msg += `Clue ${newest.index + 1}: ${describeItem(rule.domain, newest.item)} ${newest.pass ? 'fits' : "doesn't fit"}.`;
+    if (nextState.status === 'solved') msg += `That's it! Solved on clue ${nextState.solvedOn}.`;
+    else if (nextState.status === 'failed') msg += `The rule was: ${puzzle.connection}`;
+    else if (nextState.revealed > game.revealed) msg += `Clue ${nextState.revealed}: ${puzzle.rows[nextState.revealed - 1]}.`;
     setAnnounce(msg);
     setError(null);
-    setTestError(null);
+    setGuessError(null);
     setFeedback(null);
-    setGame(next);
+    setGame(nextState);
   };
 
-  const onTest = () => {
-    setTestError(null);
-    if (!fifth.item && !fifth.error) return apply(next(rule, game));
-    if (fifth.error || !fifth.item) return setTestError(fifth.error ?? 'Type something to test.');
-    const item = fifth.item;
-    const key = itemKey(rule.domain, item);
-    const seen = game.entries.some((e) => e.kind !== 'guess' && itemKey(rule.domain, e.item) === key);
-    if (seen && rule.domain !== 'chain') return setTestError("You've already tried that one.");
-    const after = testItem(rule, game, item);
-    const g = guessesByRow(after).get(game.revealed);
-    apply(after, `Your guess ${describeItem(rule.domain, item)} was ${g?.pass ? 'right' : 'wrong'}. `);
-    setFifth({ item: null, error: null });
-    setFifthKey((k) => k + 1);
+  const onGuess = () => {
+    setGuessError(null);
+    if (!typed) return apply(next(game));
+    if (guess.error) return setGuessError(guess.error);
+    const after = guessNext(puzzle, game, guess.text);
+    const right = guessesByRow(after).get(game.revealed)?.pass;
+    apply(after, `Your guess ${guess.text} was ${right ? 'right' : 'wrong'}. `);
+    setGuess({ text: '', error: null });
+    setGuessKey((k) => k + 1);
   };
 
-  const onGuess = async () => {
+  const onRule = async () => {
     setError(null);
-    const guess = ruleText.trim();
-    if (guess.length < 3) return setError('Describe the rule in a few words.');
-    let correct = matchesAnyPhrasing(guess, rule.acceptedPhrasings);
+    const text = ruleText.trim();
+    if (text.length < 3) return setError('Describe the rule in a few words.');
+    let correct = matchesAnyPhrasing(text, [puzzle.connection, ...puzzle.acceptedPhrasings]);
     if (!correct) {
       setBusy(true);
       try {
-        correct = (await judgeRemote(rule.id, guess)).verdict === 'correct';
+        correct = (await judgeRemote(puzzle.id, text)).verdict === 'correct';
       } catch (e) {
         setBusy(false);
         return setError(e instanceof JudgeUnavailable ? `${e.message} Nothing was used up.` : 'Something went wrong.');
       }
       setBusy(false);
     }
-    apply(guessRule(rule, game, guess, correct), correct ? '' : 'Not it. ');
-    if (!correct) setFeedback(`“${guess}” · not it.`);
+    apply(guessRule(game, text, correct), correct ? '' : 'Not it. ');
+    if (!correct) setFeedback(`“${text}” · not it.`);
   };
 
   return (
     <div className="play">
       <div className="play-meta">
-        <span>
-          {title} · {DOMAIN_LABEL[rule.domain]}
-        </span>
+        <span>{title} · what comes next</span>
         {!over && (
           <span>
-            Clue {game.revealed} of {CLUE_COUNT}
+            Clue {game.revealed} of {ROWS}
           </span>
         )}
       </div>
-      {!over && <p className="play-sub">What's the rule? Fewer clues, better score.</p>}
+      {!over && <p className="play-sub">What's the sequence? Fewer clues, better score.</p>}
 
-      <Thread domain={rule.domain} rule={rule} revealed={game.revealed} over={over} guesses={guessesByRow(game)} />
+      <Thread puzzle={puzzle} revealed={game.revealed} over={over} guesses={guessesByRow(game)} />
 
       {over && renderResult(game)}
       <div ref={endRef} />
 
       {!over && (
         <div className="answer">
-          {canTest(game) ? (
+          {canGuess(game) ? (
             <form
               className="field-row"
               onSubmit={(e) => {
                 e.preventDefault();
-                onTest();
+                onGuess();
               }}
             >
-              <FifthInput domain={rule.domain} resetKey={fifthKey} onChange={setFifth} disabled={busy} />
+              <GuessInput resetKey={guessKey} onChange={setGuess} disabled={busy} />
               <button type="submit" className="btn" disabled={busy}>
-                {typed ? (rule.domain === 'chain' ? 'Guess ›' : 'Test ›') : 'Next ›'}
+                {typed ? 'Guess ›' : 'Next ›'}
               </button>
-              {testError && (
+              {guessError && (
                 <p className="form-error field-row-error" role="alert">
-                  {testError}
+                  {guessError}
                 </p>
               )}
             </form>
@@ -157,7 +143,7 @@ export function Play({ rule, storageKey, seed, title, onFinish, renderResult }: 
             className="field-row"
             onSubmit={(e) => {
               e.preventDefault();
-              void onGuess();
+              void onRule();
             }}
           >
             <div className="field">
@@ -170,7 +156,7 @@ export function Play({ rule, storageKey, seed, title, onFinish, renderResult }: 
                 value={ruleText}
                 maxLength={200}
                 autoComplete="off"
-                placeholder={RULE_EXAMPLE[rule.domain]}
+                placeholder={RULE_EXAMPLE}
                 onChange={(e) => setRuleText(e.target.value)}
                 disabled={busy}
               />
@@ -188,7 +174,7 @@ export function Play({ rule, storageKey, seed, title, onFinish, renderResult }: 
           <p className="note">{last ? 'One last guess at the rule.' : 'Each guess or wrong rule opens the next clue. Only the rule is scored.'}</p>
           {last && (
             <button type="button" className="btn btn-link" onClick={() => apply(giveUp(game))} disabled={busy}>
-              Give up and show the rule
+              Give up and show the answer
             </button>
           )}
         </div>

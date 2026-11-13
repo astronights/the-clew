@@ -1,5 +1,5 @@
 import { puzzleNumber } from '../src/lib/daily';
-import { CLUE_COUNT } from '../src/rules/types';
+import { ROWS as CLUE_COUNT } from '../src/lib/puzzle';
 import { getSql } from './_lib/db';
 import { clientIp, hashIp, json, readJson } from './_lib/http';
 import { withinRateLimit } from './_lib/ratelimit';

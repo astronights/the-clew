@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { chainToRule, matchesAnswer, validateChain, type ChainPuzzle } from '../src/lib/chain';
-import { normalizeAnswer } from '../src/lib/items';
+import { matchesAnswer, validateChain, type ChainPuzzle } from '../src/lib/chain';
+import { matchesRow, normalizeAnswer } from '../src/lib/answer';
 import { coercePuzzle, extractJson, fillPrompt, loadPromptTemplate, promptFor } from '../api/_lib/generator';
 import { requireAdmin } from '../api/_lib/admin';
 
@@ -28,15 +28,6 @@ describe('answers', () => {
     expect(matchesAnswer(p, 'elizabeth ii')).toBe(true);
     expect(matchesAnswer(p, 'Victoria')).toBe(false);
     expect(matchesAnswer(p, '   ')).toBe(false);
-  });
-  it('become a playable rule whose clues all fit and whose 5th is checked by code', () => {
-    const r = chainToRule(50, planets);
-    expect(r.id).toBe('chain:50');
-    expect(r.clues).toHaveLength(5);
-    expect(r.clues[4].item).toBe('Jupiter');
-    expect(r.clues.every((c) => c.pass)).toBe(true);
-    expect(r.predicate('jupiter')).toBe(true);
-    expect(r.predicate('Saturn')).toBe(false);
   });
 });
 
@@ -91,7 +82,6 @@ describe('admin auth', () => {
   });
 });
 
-import { matchesRow } from '../src/lib/chain';
 
 describe('guessing a disguised row', () => {
   it('accepts the listed forms', () => {

@@ -1,9 +1,9 @@
-import { CLUE_COUNT } from '../rules/types';
+import { ROWS as CLUE_COUNT } from './puzzle';
 import type { Outcome } from './game';
 
 export const SITE = 'theclew.fyi';
 
-export const OUTCOME_EMOJI: Record<Outcome, string> = { next: '⏭️', test: '🔍', miss: '❌', solved: '✅' };
+export const OUTCOME_EMOJI: Record<Outcome, string> = { next: '⏭️', test: '🤔', miss: '❌', solved: '✅' };
 
 /** counts[k] = players who solved on clue k (1..CLUE_COUNT); counts[0] = unsolved. */
 export function neededMorePercent(counts: number[], solvedOn: number): number | null {
