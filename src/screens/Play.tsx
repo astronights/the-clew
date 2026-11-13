@@ -101,14 +101,13 @@ export function Play({ puzzle, storageKey, seed, title, onFinish, renderResult }
   return (
     <div className="play">
       <div className="play-meta">
-        <span>{title} · what comes next</span>
+        <span>{title}</span>
         {!over && (
           <span>
             Clue {game.revealed} of {ROWS}
           </span>
         )}
       </div>
-      {!over && <p className="play-sub">What's the sequence? Fewer clues, better score.</p>}
 
       <Thread puzzle={puzzle} revealed={game.revealed} over={over} guesses={guessesByRow(game)} />
 
