@@ -1,12 +1,9 @@
 /**
- * Seeds the verdict cache with every built-in puzzle's accepted phrasings (as "correct"),
- * so common guesses never hit Gemini.
- *   npm run db:seed            # phrasings only
- *   npm run db:seed -- --demo  # also fake results for today's puzzle (local testing)
+ * Local testing helper: fake results for today's puzzle so the
+ * "x% of players needed more clues" line has data.
+ *   npm run db:seed -- --demo
  */
 import { neon } from '@neondatabase/serverless';
-import { LIBRARY } from '../src/puzzles/library';
-import { normalizeGuess } from '../src/lib/fuzzy';
 import { puzzleNumber } from '../src/lib/daily';
 import { loadEnv } from './env';
 
@@ -19,31 +16,19 @@ if (!url) {
 const sql = neon(url);
 
 async function main() {
-  let n = 0;
-  for (const puzzle of LIBRARY) {
-    for (const phrase of [puzzle.connection, ...puzzle.acceptedPhrasings]) {
-      const norm = normalizeGuess(phrase);
-      if (!norm) continue;
-      await sql.query(
-        `insert into verdict_cache (rule_id, normalized_guess, verdict, hint) values ($1, $2, 'correct', 'Nice thinking — prove it!')
-         on conflict (rule_id, normalized_guess) do nothing`,
-        [`lib:${puzzle.id}`, norm],
-      );
-      n++;
-    }
+  if (!process.argv.includes('--demo')) {
+    console.log('Nothing to seed. Use --demo to add fake results for today.');
+    return;
   }
-  console.log(`✓ seeded ${n} cached verdicts`);
-  if (process.argv.includes('--demo')) {
-    const p = puzzleNumber();
-    const demo = [14, 6, 19, 27, 21, 13];
-    for (let k = 0; k <= 5; k++)
-      await sql.query(
-        `insert into daily_results (puzzle_no, solved_on_clue, count) values ($1, $2, $3)
-         on conflict (puzzle_no, solved_on_clue) do update set count = excluded.count`,
-        [p, k, demo[k]],
-      );
-    console.log(`✓ demo results for puzzle #${p}`);
-  }
+  const p = puzzleNumber();
+  const demo = [14, 6, 19, 27, 21, 13];
+  for (let k = 0; k <= 5; k++)
+    await sql.query(
+      `insert into daily_results (puzzle_no, solved_on_clue, count) values ($1, $2, $3)
+       on conflict (puzzle_no, solved_on_clue) do update set count = excluded.count`,
+      [p, k, demo[k]],
+    );
+  console.log(`✓ demo results for puzzle #${p}`);
 }
 
 main().catch((e) => {

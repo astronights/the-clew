@@ -164,6 +164,14 @@ input {
   font-size: 1.3rem;
   letter-spacing: -0.02em;
 }
+.logo-desk {
+  margin-left: 8px;
+  padding: 1px 7px;
+  border: 1.5px solid var(--ink);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  vertical-align: 4px;
+}
 .logo-dot {
   display: inline-block;
   width: 8px;
@@ -883,6 +891,15 @@ input {
   }
 }
 
+/* ---------- not ready ---------- */
+.not-ready {
+  margin: 18vh 0 0;
+  text-align: center;
+}
+.not-ready h2 {
+  font-size: 1.5rem;
+}
+
 /* ---------- admin ---------- */
 .loading {
   margin-top: 40px;
@@ -937,7 +954,7 @@ input {
   color: var(--thread);
 }
 .chip.status-rejected,
-.chip.status-builtin {
+.chip.status-empty {
   border-color: var(--line);
   color: var(--ink-3);
 }
@@ -998,6 +1015,37 @@ input {
 .review-date .chip {
   margin: 2px 0 0;
   display: table;
+}
+.review-title.is-empty {
+  color: var(--ink-3);
+  font-style: italic;
+}
+.empty-day {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.reminders {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+}
+.reminders .btn {
+  height: 44px;
+}
+.reminders-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.reminders-on {
+  color: var(--right);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 .review-title {
   min-width: 0;
@@ -1069,8 +1117,8 @@ input {
 .calendar-dot.status-draft {
   border-color: var(--thread);
 }
-.calendar-day.status-builtin .calendar-dot,
-.calendar-dot.status-builtin {
+.calendar-day.status-empty .calendar-dot,
+.calendar-dot.status-empty {
   background: var(--line);
 }
 .calendar-key {
@@ -1166,4 +1214,28 @@ input {
 }
 details summary {
   cursor: pointer;
+}
+
+/* keep long <select> options from stretching the editor */
+.ai-box,
+.empty-day,
+.editor-form,
+.reminders {
+  grid-template-columns: minmax(0, 1fr);
+}
+.field {
+  min-width: 0;
+}
+select.input {
+  max-width: 100%;
+  text-overflow: ellipsis;
+}
+.ai-box .btn-row {
+  grid-template-columns: 1fr 1fr;
+}
+.ai-box .btn {
+  min-width: 0;
+  padding: 0 8px;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
 }

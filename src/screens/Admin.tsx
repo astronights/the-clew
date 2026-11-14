@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { CHAIN_CLUES, validateChain, WEEKDAY_DIFFICULTY, type ChainPuzzle, type StoredPuzzle } from '../lib/chain';
-import { dateOfPuzzle, libraryPuzzleFor, puzzleNumber } from '../lib/daily';
+import { dateOfPuzzle, puzzleNumber } from '../lib/daily';
+import { LIBRARY } from '../puzzles/library';
 
 const TOKEN_KEY = 'clew:admin-token';
 const REVIEW_DAYS = 8; // today + the next 7
@@ -39,10 +40,26 @@ const fmtDate = (no: number, opts: Intl.DateTimeFormatOptions = { weekday: 'shor
 
 const noForDate = (y: number, m: number, d: number) => puzzleNumber(Date.UTC(y, m, d, 12));
 
-/** The built-in puzzle a day falls back to, without its library id. */
-function builtIn(no: number): ChainPuzzle {
-  const { id: _id, ...p } = libraryPuzzleFor(no);
-  return p;
+/** A blank puzzle for a day with nothing written yet. */
+function emptyPuzzle(no: number): ChainPuzzle {
+  return {
+    connection: '',
+    acceptedPhrasings: [],
+    clues: Array(CHAIN_CLUES).fill(''),
+    answer: '',
+    acceptedAnswers: [],
+    explanation: '',
+    category: '',
+    difficulty: WEEKDAY_DIFFICULTY[dateOfPuzzle(no).getUTCDay()],
+  };
+}
+
+/** A copy of a built-in puzzle, to start a day from (never used automatically). */
+function fromLibrary(id: string): ChainPuzzle | null {
+  const lib = LIBRARY.find((x) => x.id === id);
+  if (!lib) return null;
+  const { id: _id, ...p } = lib;
+  return structuredClone(p);
 }
 
 const splitList = (s: string) =>
@@ -51,9 +68,9 @@ const splitList = (s: string) =>
     .map((x) => x.trim())
     .filter(Boolean);
 
-type StatusKey = 'approved' | 'draft' | 'rejected' | 'builtin';
-const statusOf = (stored?: StoredPuzzle): StatusKey => (stored ? stored.status : 'builtin');
-const STATUS_TEXT: Record<StatusKey, string> = { approved: 'approved', draft: 'needs review', rejected: 'rejected', builtin: 'built-in' };
+type StatusKey = 'approved' | 'draft' | 'rejected' | 'empty';
+const statusOf = (stored?: StoredPuzzle): StatusKey => (stored ? stored.status : 'empty');
+const STATUS_TEXT: Record<StatusKey, string> = { approved: 'approved', draft: 'needs review', rejected: 'rejected', empty: 'empty' };
 
 /* ---------- entry: login or desk ---------- */
 
@@ -168,6 +185,8 @@ function Desk({ token, onLock }: { token: string; onLock: () => void }) {
         </button>
       </div>
 
+      <Reminders token={token} />
+
       <div className="admin-section">
         <div className="admin-section-head">
           <h3>This week</h3>
@@ -176,7 +195,7 @@ function Desk({ token, onLock }: { token: string; onLock: () => void }) {
         <ul className="review-list">
           {reviewDays.map((no) => {
             const st = statusOf(stored[no]);
-            const p = stored[no]?.data ?? builtIn(no);
+            const title = stored[no]?.data.connection || 'No puzzle yet';
             return (
               <li key={no}>
                 <button className="review-row" onClick={() => setSelected(no)}>
@@ -184,7 +203,7 @@ function Desk({ token, onLock }: { token: string; onLock: () => void }) {
                     {fmtDate(no)}
                     {no === today && <span className="chip">today</span>}
                   </span>
-                  <span className="review-title">{p.connection}</span>
+                  <span className={`review-title ${stored[no] ? '' : 'is-empty'}`}>{title}</span>
                   <span className={`chip status-${st}`}>{STATUS_TEXT[st]}</span>
                 </button>
               </li>
@@ -288,7 +307,7 @@ function Calendar({
       <p className="calendar-key admin-small">
         <span className="calendar-dot status-approved" /> approved AI
         <span className="calendar-dot status-draft" /> needs review
-        <span className="calendar-dot status-builtin" /> built-in
+        <span className="calendar-dot status-empty" /> empty
       </p>
     </div>
   );
@@ -307,9 +326,9 @@ interface EditorProps {
 
 function DayEditor({ no, today, stored, token, onClose, onChanged }: EditorProps) {
   const past = no < today;
-  // past days show what actually played: the approved AI puzzle, otherwise the built-in one
+  // past days show what actually played: the approved puzzle, or nothing
   const playedAi = stored?.status === 'approved';
-  const base: ChainPuzzle = past ? (playedAi ? stored!.data : builtIn(no)) : (stored?.data ?? builtIn(no));
+  const base: ChainPuzzle = (past ? (playedAi ? stored?.data : undefined) : stored?.data) ?? emptyPuzzle(no);
   const [draft, setDraft] = useState<ChainPuzzle>(base);
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -326,7 +345,7 @@ function DayEditor({ no, today, stored, token, onClose, onChanged }: EditorProps
 
   // when the stored puzzle changes (after save / AI), show it again
   useEffect(() => {
-    setDraft(past ? (stored?.status === 'approved' ? stored.data : builtIn(no)) : (stored?.data ?? builtIn(no)));
+    setDraft((past ? (stored?.status === 'approved' ? stored.data : undefined) : stored?.data) ?? emptyPuzzle(no));
     setDirty(false);
   }, [stored, no, past]);
 
@@ -373,27 +392,60 @@ function DayEditor({ no, today, stored, token, onClose, onChanged }: EditorProps
           </button>
         </div>
 
-        <ol className="editor-rows">
-          {rows.map((r, i) => (
-            <li key={i} className={i === rows.length - 1 ? 'is-answer' : ''}>
-              {r || <em>empty</em>}
-            </li>
-          ))}
-        </ol>
+        {(stored || dirty) && !(past && !playedAi) && (
+          <ol className="editor-rows">
+            {rows.map((r, i) => (
+              <li key={i} className={i === rows.length - 1 ? 'is-answer' : ''}>
+                {r || <em>empty</em>}
+              </li>
+            ))}
+          </ol>
+        )}
 
         {past ? (
           <div className="editor-view">
-            <p>
-              <strong>{draft.connection}</strong>
-            </p>
-            <p className="admin-small">{draft.explanation}</p>
-            <p className="admin-small">
-              {playedAi ? 'Played this approved AI puzzle.' : 'Played the built-in puzzle.'} Past days can't be changed.
-            </p>
+            {playedAi ? (
+              <>
+                <p>
+                  <strong>{draft.connection}</strong>
+                </p>
+                <p className="admin-small">{draft.explanation}</p>
+                <p className="admin-small">Played on this day. Past days can't be changed.</p>
+              </>
+            ) : (
+              <p className="admin-small">No puzzle was approved for this day, so players saw “not ready yet”. Past days can't be changed.</p>
+            )}
           </div>
         ) : (
           <>
-            {!stored && <p className="admin-small">This day plays a built-in puzzle. Edit it below and save to make it this day's own draft.</p>}
+            {!stored && !dirty && (
+              <div className="empty-day">
+                <p className="admin-small">No puzzle for this day yet. Write one with AI, start from a built-in, or fill in the fields below.</p>
+                <label className="field">
+                  <span className="field-label">Start from a built-in</span>
+                  <select
+                    className="input"
+                    defaultValue=""
+                    onChange={(e) => {
+                      const p = fromLibrary(e.target.value);
+                      if (p) {
+                        setDraft(p);
+                        setDirty(true);
+                      }
+                    }}
+                  >
+                    <option value="" disabled>
+                      Pick one…
+                    </option>
+                    {LIBRARY.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.connection} ({l.difficulty}/5)
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            )}
 
             <div className="ai-box">
               <label className="field-label" htmlFor="ask">
@@ -408,12 +460,16 @@ function DayEditor({ no, today, stored, token, onClose, onChanged }: EditorProps
                 onChange={(e) => setAsk(e.target.value)}
               />
               <div className="btn-row">
-                <button className="btn" disabled={!!busy} onClick={() => run('Writing a new one…', () => call(token, '/api/admin/generate', { puzzleNo: no, extra: ask, replace: true }))}>
-                  Start over
+                <button
+                  className={`btn ${stored || dirty ? '' : 'btn-primary'}`}
+                  disabled={!!busy}
+                  onClick={() => run('Writing a new one…', () => call(token, '/api/admin/generate', { puzzleNo: no, extra: ask, replace: true }))}
+                >
+                  {stored || dirty ? 'Start over' : 'Write with AI'}
                 </button>
                 <button
                   className="btn btn-primary"
-                  disabled={!!busy || ask.trim().length < 3}
+                  disabled={!!busy || ask.trim().length < 3 || (!stored && !dirty)}
                   onClick={() =>
                     run('Updating with AI…', async () => {
                       await call(token, '/api/admin/revise', { puzzleNo: no, instruction: ask, data: draft });
@@ -518,7 +574,7 @@ function DayEditor({ no, today, stored, token, onClose, onChanged }: EditorProps
                   )}
                   {stored && st !== 'rejected' && (
                     <button className="btn btn-link" onClick={() => run('Rejecting…', () => post({ action: 'reject' }))}>
-                      Reject (use built-in)
+                      Reject
                     </button>
                   )}
                   {dirty && (
@@ -551,3 +607,154 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+/* ---------- install + reminders ---------- */
+
+type PushState = 'checking' | 'unsupported' | 'ios-install' | 'denied' | 'off' | 'on';
+interface InstallPrompt extends Event {
+  prompt: () => Promise<void>;
+}
+
+function base64UrlToBytes(b64: string): Uint8Array<ArrayBuffer> {
+  const pad = '='.repeat((4 - (b64.length % 4)) % 4);
+  const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+  const out = new Uint8Array(new ArrayBuffer(raw.length));
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
+async function deskRegistration(): Promise<ServiceWorkerRegistration> {
+  const existing = await navigator.serviceWorker.getRegistration('/admin');
+  if (existing) return existing;
+  await navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin' });
+  return navigator.serviceWorker.ready;
+}
+
+/** Install the desk as an app and turn on push reminders (weekly summary + "tomorrow isn't ready"). */
+function Reminders({ token }: { token: string }) {
+  const [state, setState] = useState<PushState>('checking');
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [install, setInstall] = useState<InstallPrompt | null>(null);
+  const standalone =
+    typeof window !== 'undefined' && (matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true);
+  const ios = typeof navigator !== 'undefined' && /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+  useEffect(() => {
+    const onPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstall(e as InstallPrompt);
+    };
+    window.addEventListener('beforeinstallprompt', onPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', onPrompt);
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+        return setState(ios && !standalone ? 'ios-install' : 'unsupported');
+      }
+      if (Notification.permission === 'denied') return setState('denied');
+      const reg = await navigator.serviceWorker.getRegistration('/admin');
+      const sub = await reg?.pushManager.getSubscription();
+      setState(sub ? 'on' : 'off');
+    })();
+  }, [ios, standalone]);
+
+  const turnOn = async () => {
+    setBusy(true);
+    setMsg('');
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') return setState(permission === 'denied' ? 'denied' : 'off');
+      const { publicKey } = await call<{ publicKey: string | null }>(token, '/api/admin/push');
+      if (!publicKey) throw new Error('Push isn’t set up on the server yet (VAPID keys).');
+      const reg = await deskRegistration();
+      const sub = (await reg.pushManager.getSubscription()) ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64UrlToBytes(publicKey) }));
+      await call(token, '/api/admin/push', { action: 'subscribe', subscription: sub.toJSON() });
+      setState('on');
+      setMsg('Reminders are on for this device.');
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const turnOff = async () => {
+    setBusy(true);
+    try {
+      const reg = await navigator.serviceWorker.getRegistration('/admin');
+      const sub = await reg?.pushManager.getSubscription();
+      if (sub) {
+        await call(token, '/api/admin/push', { action: 'unsubscribe', endpoint: sub.endpoint });
+        await sub.unsubscribe();
+      }
+      setState('off');
+      setMsg('Reminders are off for this device.');
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const test = async () => {
+    setBusy(true);
+    try {
+      const r = await call<{ sent: number }>(token, '/api/admin/push', { action: 'test' });
+      setMsg(`Test sent to ${r.sent} device${r.sent === 1 ? '' : 's'}.`);
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="reminders">
+      <div className="admin-section-head">
+        <h3>Reminders</h3>
+        {state === 'on' && <span className="reminders-on">✓ on</span>}
+      </div>
+      <p className="admin-small">A weekly summary every Sunday, and a nudge whenever tomorrow has no approved puzzle.</p>
+      {install && !standalone && (
+        <button
+          className="btn btn-block"
+          onClick={async () => {
+            await install.prompt();
+            setInstall(null);
+          }}
+        >
+          Install the desk app
+        </button>
+      )}
+      {state === 'ios-install' && (
+        <p className="admin-small">
+          On iPhone, reminders need the app: tap <strong>Share</strong> → <strong>Add to Home Screen</strong>, then open “Clew desk” from your Home Screen.
+        </p>
+      )}
+      {state === 'unsupported' && <p className="admin-small">This browser can’t receive push notifications.</p>}
+      {state === 'denied' && <p className="admin-small">Notifications are blocked for this site. Allow them in your browser or phone settings, then reload.</p>}
+      {state === 'off' && (
+        <button className="btn btn-primary btn-block" onClick={turnOn} disabled={busy}>
+          Turn on reminders
+        </button>
+      )}
+      {state === 'on' && (
+        <div className="reminders-row">
+          <button className="btn" onClick={test} disabled={busy}>
+            Send a test
+          </button>
+          <button className="btn btn-link" onClick={turnOff} disabled={busy}>
+            Turn off
+          </button>
+        </div>
+      )}
+      {msg && (
+        <p className="admin-small" role="status">
+          {msg}
+        </p>
+      )}
+    </div>
+  );
+}

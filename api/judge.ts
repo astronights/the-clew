@@ -1,6 +1,5 @@
 import { puzzleNumber } from '../src/lib/daily';
 import { fromChain, type Puzzle } from '../src/lib/puzzle';
-import { LIBRARY } from '../src/puzzles/library';
 import { matchesAnyPhrasing, normalizeGuess } from '../src/lib/fuzzy';
 import { getSql } from './_lib/db';
 import { askGemini, type Judgement } from './_lib/gemini';
@@ -10,13 +9,8 @@ import { withinRateLimit } from './_lib/ratelimit';
 
 const JUDGE_LIMIT_PER_HOUR = 30;
 
-/** "lib:<id>" for a built-in puzzle, or "chain:N" for the approved AI puzzle of day N (never a future day). */
+/** "chain:N" → the approved puzzle of day N (never a future day). */
 async function findPuzzle(id: string): Promise<Puzzle | null> {
-  const lib = id.match(/^lib:([\w-]+)$/);
-  if (lib) {
-    const p = LIBRARY.find((x) => x.id === lib[1]);
-    return p ? fromChain(id, p) : null;
-  }
   const m = id.match(/^chain:(\d+)$/);
   if (!m) return null;
   const no = Number(m[1]);

@@ -12,6 +12,11 @@ function devApi(): Plugin {
     configureServer(server: ViteDevServer) {
       server.middlewares.use(async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
         const url = new URL(req.url ?? '/', 'http://localhost');
+        // /admin is its own page (admin.html), like the rewrite in vercel.json
+        if (url.pathname === '/admin' || url.pathname === '/admin/') {
+          req.url = '/admin.html' + url.search;
+          return next();
+        }
         const m = url.pathname.match(/^\/api\/([a-z-]+(?:\/[a-z-]+)?)$/);
         if (!m) return next();
         try {
@@ -47,5 +52,8 @@ function devApi(): Plugin {
 export default defineConfig(({ mode }) => {
   // expose DATABASE_URL / GEMINI_* to the dev API handlers (never to the client bundle)
   Object.assign(process.env, loadEnv(mode, process.cwd(), ''));
-  return { plugins: [react(), devApi()] };
+  return {
+    plugins: [react(), devApi()],
+    build: { rollupOptions: { input: { main: 'index.html', admin: 'admin.html' } } },
+  };
 });
