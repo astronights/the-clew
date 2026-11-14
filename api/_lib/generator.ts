@@ -100,7 +100,7 @@ interface WriterReply {
 async function callWriter(prompt: string, timeoutMs: number): Promise<WriterReply> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error('GEMINI_API_KEY is not set.');
-  const model = process.env.GEMINI_GENERATOR_MODEL || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  const model = process.env.GEMINI_GENERATOR_MODEL || 'gemini-2.5-flash';
   const started = Date.now();
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);

@@ -122,6 +122,12 @@ tests/                Vitest suites
 
 **Every rule guess is judged by Gemini**: no word-matching shortcut and no reusing earlier verdicts.
 
+- **With a decision model** (`GEMINI_MODEL=gemini-decision-1`): `POST /v1beta/decisions` with one `noul` (yes/no)
+  question. `input` = today's puzzle + the guess; `instructions` = the rules and examples from `judge.md` (minus its
+  output section). The answer is a calibrated P(correct): ≥ 0.5 counts as correct. Logs show `judge gemini-decision-1:
+  P(correct)=…`. Any failure falls back to `gemini-2.5-flash` for that guess.
+- **With a text model** (default):
+
 - `POST /api/judge`: rate limit (30/hour per hashed IP) → Gemini. The guess is sanitised, wrapped in
   `<guess>…</guess>` and treated strictly as data; the response is forced to JSON and only `correct` counts.
 - **The prompt is built for caching.** [`prompts/judge.md`](prompts/judge.md) holds the fixed judging rules and ~60
@@ -159,8 +165,8 @@ npm run build             # typecheck + production build
 | --- | --- | --- |
 | `DATABASE_URL` | for prod | Neon connection string (use the pooled one). Verdict cache, results, rate limiting, AI puzzles. |
 | `GEMINI_API_KEY` | for prod | Google AI Studio key, for the judge and the puzzle writer. |
-| `GEMINI_MODEL` | no | Model for **judging players' rule guesses** (every guess = 1 request, so pick one with generous rate limits). Default `gemini-2.5-flash`. |
-| `GEMINI_GENERATOR_MODEL` | no | Model for **writing puzzles** (a request or two a week), e.g. `gemini-3.8-flash`. Defaults to `GEMINI_MODEL`. Settings adapt to the model family. |
+| `GEMINI_MODEL` | no | Model for **judging players' rule guesses** (every guess = 1 request). Default `gemini-2.5-flash`. A decision model such as `gemini-decision-1` is used through the **Decisions API** (one yes/no question, correct when P ≥ 0.5). If the model fails (unknown, unsupported, quota), that guess is judged by `gemini-2.5-flash` instead. |
+| `GEMINI_GENERATOR_MODEL` | no | Model for **writing puzzles** (a request or two a week), e.g. `gemini-3.8-flash`. Default `gemini-2.5-flash`. Settings adapt to the model family. |
 | `GEMINI_THINKING_LEVEL` / `GEMINI_GENERATOR_THINKING_LEVEL` | no | Gemini 3.x only: thinking level for judging / writing, default `low`. |
 | `ADMIN_TOKEN` | for `/admin` | Password for the puzzle desk (12+ characters). Admin is off when unset. |
 | `IP_HASH_SALT` | recommended | Salt for hashing IPs in `rate_limit`. Raw IPs are never stored. |
