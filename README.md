@@ -157,8 +157,9 @@ npm run build             # typecheck + production build
 | --- | --- | --- |
 | `DATABASE_URL` | for prod | Neon connection string (use the pooled one). Verdict cache, results, rate limiting, AI puzzles. |
 | `GEMINI_API_KEY` | for prod | Google AI Studio key, for the judge and the puzzle writer. |
-| `GEMINI_MODEL` | no | Model name, default `gemini-2.5-flash`. |
+| `GEMINI_MODEL` | no | Model name, default `gemini-2.5-flash` (e.g. `gemini-3.8-flash`). Settings adapt to the model family. |
 | `GEMINI_GENERATOR_MODEL` | no | A different model just for writing puzzles (defaults to `GEMINI_MODEL`). |
+| `GEMINI_THINKING_LEVEL` / `GEMINI_GENERATOR_THINKING_LEVEL` | no | Gemini 3.x only: thinking level for judging / writing, default `low`. |
 | `ADMIN_TOKEN` | for `/admin` | Password for the puzzle desk (12+ characters). Admin is off when unset. |
 | `IP_HASH_SALT` | recommended | Salt for hashing IPs in `rate_limit`. Raw IPs are never stored. |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | for reminders | Web Push keys; create once with `npm run vapid-keys`. |

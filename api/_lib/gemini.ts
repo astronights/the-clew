@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Puzzle } from '../../src/lib/puzzle';
+import { generationSettings } from './modelConfig';
 
 export type Verdict = 'correct' | 'close' | 'wrong';
 export interface Judgement {
@@ -59,7 +60,7 @@ export async function askGemini(p: Puzzle, guess: string): Promise<Judgement> {
   if (!key) throw new Error('GEMINI_API_KEY is not set');
   const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 12_000);
+  const timer = setTimeout(() => ctrl.abort(), 20_000);
   try {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
       method: 'POST',
@@ -69,8 +70,7 @@ export async function askGemini(p: Puzzle, guess: string): Promise<Judgement> {
         systemInstruction: { parts: [{ text: buildSystemPrompt(p) }] },
         contents: [{ role: 'user', parts: [{ text: `<guess>${sanitizeGuess(guess)}</guess>` }] }],
         generationConfig: {
-          temperature: 0,
-          maxOutputTokens: 512,
+          ...generationSettings(model, 'judge'),
           responseMimeType: 'application/json',
           responseSchema: {
             type: 'OBJECT',

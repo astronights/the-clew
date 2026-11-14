@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { validateChain, WEEKDAY_DIFFICULTY, type ChainPuzzle } from '../../src/lib/chain';
 import { dateOfPuzzle } from '../../src/lib/daily';
+import { generationSettings } from './modelConfig';
 
 /** The editable prompt lives in prompts/puzzle-generator.md; everything after the first `---` line is sent. */
 export function loadPromptTemplate(): string {
@@ -99,7 +100,7 @@ export async function generatePuzzle(prompt: string): Promise<Generated> {
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         tools: [{ google_search: {} }],
-        generationConfig: { temperature: 0.9 },
+        generationConfig: generationSettings(model, 'writer'),
       }),
     });
     if (!res.ok) throw new Error(`Gemini HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);

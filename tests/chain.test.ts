@@ -111,3 +111,22 @@ describe('AI revision prompt', () => {
     expect(t).not.toMatch(/\{\{\w+\}\}/);
   });
 });
+
+import { generationSettings, isGemini3 } from '../api/_lib/modelConfig';
+
+describe('model settings', () => {
+  it('detects Gemini 3.x models', () => {
+    expect(isGemini3('gemini-3.8-flash')).toBe(true);
+    expect(isGemini3('gemini-3-flash-preview')).toBe(true);
+    expect(isGemini3('gemini-2.5-flash')).toBe(false);
+  });
+  it('leaves temperature alone and lowers thinking on Gemini 3.x', () => {
+    const s = generationSettings('gemini-3.8-flash', 'judge');
+    expect(s).not.toHaveProperty('temperature');
+    expect(s.thinkingConfig).toEqual({ thinkingLevel: 'low' });
+    expect(s.maxOutputTokens).toBeGreaterThanOrEqual(4096);
+  });
+  it('keeps 2.5 deterministic for judging with thinking off', () => {
+    expect(generationSettings('gemini-2.5-flash', 'judge')).toEqual({ temperature: 0, maxOutputTokens: 512, thinkingConfig: { thinkingBudget: 0 } });
+  });
+});
