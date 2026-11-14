@@ -176,7 +176,7 @@ input {
   display: inline-block;
   width: 8px;
   height: 8px;
-  margin-left: 4px;
+  margin-left: 3px;
   border-radius: 50%;
   background: var(--thread);
   vertical-align: 2px;
