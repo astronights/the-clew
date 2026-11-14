@@ -126,9 +126,7 @@ tests/                Vitest suites
   question. `input` = today's puzzle + the guess; `instructions` = the rules and examples from `judge.md` (minus its
   output section). The answer is a calibrated P(correct): ≥ 0.5 counts as correct. Logs show `judge gemini-decision-1:
   P(correct)=…`. Any failure falls back to `gemini-2.5-flash` for that guess.
-- **With a text model** (default):
-
-- `POST /api/judge`: rate limit (30/hour per hashed IP) → Gemini. The guess is sanitised, wrapped in
+- **With a text model** (default): `POST /api/judge`: rate limit (30/hour per hashed IP) → Gemini. The guess is sanitised, wrapped in
   `<guess>…</guess>` and treated strictly as data; the response is forced to JSON and only `correct` counts.
 - **The prompt is built for caching.** [`prompts/judge.md`](prompts/judge.md) holds the fixed judging rules and ~60
   worked examples (~2,200 tokens). It goes **first** and is identical for every call; today's puzzle follows (the same
