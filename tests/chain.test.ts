@@ -130,3 +130,22 @@ describe('model settings', () => {
     expect(generationSettings('gemini-2.5-flash', 'judge')).toEqual({ temperature: 0, maxOutputTokens: 512, thinkingConfig: { thinkingBudget: 0 } });
   });
 });
+
+import { batchPromptFor, extractJsonArray } from '../api/_lib/generator';
+
+describe('writing a week in one request', () => {
+  it('lists every day with its difficulty and asks for a JSON array', () => {
+    const t = batchPromptFor([48, 49, 50], ['- Greek letters (Language)']);
+    expect(t).toContain('Write **3 puzzles**');
+    expect(t).toMatch(/puzzleNo 48: Monday,? 16 November 2026, difficulty 1/);
+    expect(t).toMatch(/puzzleNo 50: Wednesday,? 18 November 2026, difficulty 2/);
+    expect(t).toContain('only a JSON array');
+    expect(t).toContain('Greek letters');
+    expect(t).not.toMatch(/\{\{\w+\}\}/);
+  });
+  it('pulls the array out of a chatty reply', () => {
+    const arr = extractJsonArray('Here you go:\n```json\n[' + JSON.stringify({ ...planets, puzzleNo: 48 }) + ']\n```');
+    expect(arr).toHaveLength(1);
+    expect(() => extractJsonArray('{"not":"a list"}')).toThrow();
+  });
+});

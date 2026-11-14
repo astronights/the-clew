@@ -67,7 +67,8 @@ own text and never the row before it.
 - **Reviewing:** open **`/admin`** (not linked anywhere, `noindex`) and enter `ADMIN_TOKEN`.
   - **Reminders:** install the desk as an app and turn on push notifications (see below).
   - **This week** lists today plus the next 7 days with their status (approved / needs review / empty).
-    **Write AI puzzles for empty days** drafts every day that doesn't have one.
+    **Write AI puzzles for empty days** drafts every empty day in **one Gemini request** (`/api/admin/generate-batch`,
+    up to 5 minutes), which matters on free tiers with only a few requests per minute.
   - **The calendar** shows any month; tap a day to see the puzzle that played or will play. Past days are view-only.
   - **The day editor** has a field for every part (clues and what each accepts as a guess, the answer and its
     spellings, the rule and its phrasings, explanation, category, difficulty), live checks, and **Save as draft /
@@ -98,6 +99,7 @@ api/
   puzzle.ts           GET  /api/puzzle?no=N → today's approved AI puzzle (404 = play the built-in one)
   admin/puzzles.ts    GET/POST the week's drafts; approve / reject / save (ADMIN_TOKEN)
   admin/generate.ts   POST one draft with Gemini + Google Search (ADMIN_TOKEN)
+  admin/generate-batch.ts  POST several days in ONE Gemini request (ADMIN_TOKEN, up to 300 s)
   admin/revise.ts     POST an instruction → Gemini updates the day's puzzle, saved as a draft (ADMIN_TOKEN)
   admin/push.ts       GET the VAPID key; POST subscribe / unsubscribe / test (ADMIN_TOKEN)
   cron/reminder.ts    daily check (Vercel Cron, CRON_SECRET): Sunday summary + "tomorrow isn't ready" nudge
@@ -157,8 +159,8 @@ npm run build             # typecheck + production build
 | --- | --- | --- |
 | `DATABASE_URL` | for prod | Neon connection string (use the pooled one). Verdict cache, results, rate limiting, AI puzzles. |
 | `GEMINI_API_KEY` | for prod | Google AI Studio key, for the judge and the puzzle writer. |
-| `GEMINI_MODEL` | no | Model name, default `gemini-2.5-flash` (e.g. `gemini-3.8-flash`). Settings adapt to the model family. |
-| `GEMINI_GENERATOR_MODEL` | no | A different model just for writing puzzles (defaults to `GEMINI_MODEL`). |
+| `GEMINI_MODEL` | no | Model for **judging players' rule guesses** (every guess = 1 request, so pick one with generous rate limits). Default `gemini-2.5-flash`. |
+| `GEMINI_GENERATOR_MODEL` | no | Model for **writing puzzles** (a request or two a week), e.g. `gemini-3.8-flash`. Defaults to `GEMINI_MODEL`. Settings adapt to the model family. |
 | `GEMINI_THINKING_LEVEL` / `GEMINI_GENERATOR_THINKING_LEVEL` | no | Gemini 3.x only: thinking level for judging / writing, default `low`. |
 | `ADMIN_TOKEN` | for `/admin` | Password for the puzzle desk (12+ characters). Admin is off when unset. |
 | `IP_HASH_SALT` | recommended | Salt for hashing IPs in `rate_limit`. Raw IPs are never stored. |

@@ -24,6 +24,10 @@
     },
     "api/judge.ts": {
       "includeFiles": "prompts/**"
+    },
+    "api/admin/generate-batch.ts": {
+      "includeFiles": "prompts/**",
+      "maxDuration": 300
     }
   },
   "headers": [

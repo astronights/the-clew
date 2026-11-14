@@ -163,30 +163,22 @@ function Desk({ token, onLock }: { token: string; onLock: () => void }) {
   const writeEmpty = async () => {
     const todo = reviewDays.filter((no) => !stored[no] || stored[no].status === 'rejected');
     if (!todo.length) return setMsg('Every day this week already has an AI puzzle.');
-    let stopped = '';
-    for (const [i, no] of todo.entries()) {
-      if (i > 0) {
-        // space requests out so free-tier per-minute limits aren't hit
-        setWriting(`Pausing before No. ${no}…`);
-        await new Promise((r) => setTimeout(r, 7000));
-      }
-      setWriting(`Writing No. ${no} (${i + 1} of ${todo.length})…`);
-      try {
-        await call(token, '/api/admin/generate', { puzzleNo: no });
-      } catch (e) {
-        const m = (e as Error).message;
-        setMsg(`No. ${no}: ${m}`);
-        if (/daily|limit|quota/i.test(m)) {
-          stopped = m;
-          await refreshDay(no);
-          break;
-        }
-      }
-      await refreshDay(no);
+    // one request writes every empty day (free-tier per-minute limits are tiny)
+    setWriting(`Writing ${todo.length} puzzle${todo.length === 1 ? '' : 's'} in one request… this can take a minute or two`);
+    try {
+      const r = await call<{ written: { puzzleNo: number; errors: string[] }[]; missing?: number[] }>(token, '/api/admin/generate-batch', { puzzleNos: todo });
+      const withProblems = r.written.filter((w) => w.errors.length).length;
+      setMsg(
+        `Wrote ${r.written.length} draft${r.written.length === 1 ? '' : 's'}.` +
+          (withProblems ? ` ${withProblems} need fixes before approval.` : '') +
+          (r.missing?.length ? ` Missing: No. ${r.missing.join(', ')} (write those one at a time).` : '') +
+          ' Open each day to review it.',
+      );
+    } catch (e) {
+      setMsg(`Stopped: ${(e as Error).message}`);
     }
+    await load(today, REVIEW_DAYS);
     setWriting(null);
-    if (stopped) setMsg(`Stopped: ${stopped}`);
-    else setMsg('Done. Open each day to review it.');
   };
 
   return (
