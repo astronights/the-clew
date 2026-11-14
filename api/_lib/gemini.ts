@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Puzzle } from '../../src/lib/puzzle';
+import { describeGeminiError } from './geminiErrors';
 import { generationSettings } from './modelConfig';
 
 export type Verdict = 'correct' | 'close' | 'wrong';
@@ -83,7 +84,7 @@ export async function askGemini(p: Puzzle, guess: string): Promise<Judgement> {
         },
       }),
     });
-    if (!res.ok) throw new Error(`Gemini HTTP ${res.status}`);
+    if (!res.ok) throw describeGeminiError(res.status, await res.text(), model);
     const data = (await res.json()) as GeminiResponse;
     const u = data.usageMetadata;
     // shows in Vercel logs whether the shared prefix was served from Gemini's cache

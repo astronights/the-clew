@@ -163,17 +163,30 @@ function Desk({ token, onLock }: { token: string; onLock: () => void }) {
   const writeEmpty = async () => {
     const todo = reviewDays.filter((no) => !stored[no] || stored[no].status === 'rejected');
     if (!todo.length) return setMsg('Every day this week already has an AI puzzle.');
+    let stopped = '';
     for (const [i, no] of todo.entries()) {
+      if (i > 0) {
+        // space requests out so free-tier per-minute limits aren't hit
+        setWriting(`Pausing before No. ${no}…`);
+        await new Promise((r) => setTimeout(r, 7000));
+      }
       setWriting(`Writing No. ${no} (${i + 1} of ${todo.length})…`);
       try {
         await call(token, '/api/admin/generate', { puzzleNo: no });
       } catch (e) {
-        setMsg(`No. ${no}: ${(e as Error).message}`);
+        const m = (e as Error).message;
+        setMsg(`No. ${no}: ${m}`);
+        if (/daily|limit|quota/i.test(m)) {
+          stopped = m;
+          await refreshDay(no);
+          break;
+        }
       }
       await refreshDay(no);
     }
     setWriting(null);
-    setMsg('Done. Open each day to review it.');
+    if (stopped) setMsg(`Stopped: ${stopped}`);
+    else setMsg('Done. Open each day to review it.');
   };
 
   return (

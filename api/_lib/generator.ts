@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { validateChain, WEEKDAY_DIFFICULTY, type ChainPuzzle } from '../../src/lib/chain';
 import { dateOfPuzzle } from '../../src/lib/daily';
+import { describeGeminiError, sleep } from './geminiErrors';
 import { generationSettings } from './modelConfig';
 
 /** The editable prompt lives in prompts/puzzle-generator.md; everything after the first `---` line is sent. */
@@ -90,20 +91,35 @@ export async function generatePuzzle(prompt: string): Promise<Generated> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error('GEMINI_API_KEY is not set.');
   const model = process.env.GEMINI_GENERATOR_MODEL || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  const started = Date.now();
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 55_000);
-  try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+  const ask = (withSearch: boolean) =>
+    fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
       method: 'POST',
       signal: ctrl.signal,
       headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        tools: [{ google_search: {} }],
+        ...(withSearch ? { tools: [{ google_search: {} }] } : {}),
         generationConfig: generationSettings(model, 'writer'),
       }),
     });
-    if (!res.ok) throw new Error(`Gemini HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  try {
+    let withSearch = true;
+    let res = await ask(withSearch);
+    for (let attempt = 0; !res.ok && attempt < 2; attempt++) {
+      const err = describeGeminiError(res.status, await res.text(), model);
+      if (res.status !== 429) throw err;
+      if (withSearch && /Search/.test(err.message)) {
+        // the Search allowance ran out: write the puzzle without the news hook instead of failing
+        withSearch = false;
+      } else if (err.window !== 'day' && (err.retryAfter ?? 0) <= 20 && Date.now() - started < 25_000) {
+        await sleep(((err.retryAfter ?? 5) + 1) * 1000);
+      } else throw err;
+      res = await ask(withSearch);
+    }
+    if (!res.ok) throw describeGeminiError(res.status, await res.text(), model);
     const data = (await res.json()) as {
       candidates?: {
         content?: { parts?: { text?: string }[] };
@@ -113,6 +129,7 @@ export async function generatePuzzle(prompt: string): Promise<Generated> {
     const cand = data.candidates?.[0];
     const text = cand?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
     const puzzle = coercePuzzle(extractJson(text));
+    if (!withSearch) puzzle.topical = { used: false, note: 'written without Google Search (its quota was used up)' };
     const sources = (cand?.groundingMetadata?.groundingChunks ?? [])
       .map((c) => c.web?.title || c.web?.uri || '')
       .filter(Boolean)
