@@ -21,6 +21,9 @@
     "api/admin/revise.ts": {
       "includeFiles": "prompts/**",
       "maxDuration": 60
+    },
+    "api/judge.ts": {
+      "includeFiles": "prompts/**"
     }
   },
   "headers": [

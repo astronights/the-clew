@@ -3,7 +3,6 @@ import { GuessInput, type GuessValue } from '../components/GuessInput';
 import { Thread } from '../components/Thread';
 import { confetti } from '../components/confetti';
 import { judgeRemote, JudgeUnavailable } from '../lib/api';
-import { matchesAnyPhrasing } from '../lib/fuzzy';
 import { canGuess, giveUp, guessesByRow, guessNext, guessRule, isLastRow, isOver, newGame, next, ROWS, type GameState } from '../lib/game';
 import type { Puzzle } from '../lib/puzzle';
 import { load, save } from '../lib/storage';
@@ -83,17 +82,16 @@ export function Play({ puzzle, storageKey, seed, title, onFinish, renderResult }
     setError(null);
     const text = ruleText.trim();
     if (text.length < 3) return setError('Describe the rule in a few words.');
-    let correct = matchesAnyPhrasing(text, [puzzle.connection, ...puzzle.acceptedPhrasings]);
-    if (!correct) {
-      setBusy(true);
-      try {
-        correct = (await judgeRemote(puzzle.id, text)).verdict === 'correct';
-      } catch (e) {
-        setBusy(false);
-        return setError(e instanceof JudgeUnavailable ? `${e.message} Nothing was used up.` : 'Something went wrong.');
-      }
+    // every rule guess is judged by the AI judge
+    let correct = false;
+    setBusy(true);
+    try {
+      correct = (await judgeRemote(puzzle.id, text)).verdict === 'correct';
+    } catch (e) {
       setBusy(false);
+      return setError(e instanceof JudgeUnavailable ? `${e.message} Nothing was used up.` : 'Something went wrong.');
     }
+    setBusy(false);
     apply(guessRule(game, text, correct), correct ? '' : 'Not it. ');
     if (!correct) setFeedback(`“${text}” · not it.`);
   };

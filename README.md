@@ -105,7 +105,7 @@ api/
 db/migrations/        001_init.sql, 002_puzzles.sql, 003_push.sql
 admin.html            the desk's own page (manifest, icons, service worker); /admin rewrites to it
 public/               admin.webmanifest, admin-sw.js, icons/
-prompts/              puzzle-generator.md — the editable puzzle-writing prompt
+prompts/              puzzle-generator.md (writing puzzles), judge.md (judging rule guesses)
 scripts/              validate-puzzles.ts, migrate.ts, seed.ts
 src/
   puzzles/library.ts  built-in sequence puzzles
@@ -118,12 +118,17 @@ tests/                Vitest suites
 
 ## Judging "name the rule"
 
-1. **Client fuzzy match** (`src/lib/fuzzy.ts`) against the puzzle's connection and accepted phrasings: lowercase,
-   drop punctuation and stopwords, map synonyms and number words, token overlap ≥ 0.75; numbers and other key words
-   must match exactly ("powers of 3" never matches "powers of 2").
-2. Otherwise **`POST /api/judge`**: rate limit (30/hour per hashed IP) → Neon `verdict_cache` → Gemini, given the full
-   sequence, the rule and the explanation. The guess is sanitised and wrapped in `<guess>…</guess>` and treated strictly
-   as data. The response is forced to JSON; only `correct` counts. The verdict is cached.
+**Every rule guess is judged by Gemini**: no word-matching shortcut and no reusing earlier verdicts.
+
+- `POST /api/judge`: rate limit (30/hour per hashed IP) → Gemini. The guess is sanitised, wrapped in
+  `<guess>…</guess>` and treated strictly as data; the response is forced to JSON and only `correct` counts.
+- **The prompt is built for caching.** [`prompts/judge.md`](prompts/judge.md) holds the fixed judging rules and ~60
+  worked examples (~2,200 tokens). It goes **first** and is identical for every call; today's puzzle follows (the same
+  for every player all day); the guess comes last. Gemini 2.5's automatic (implicit) caching reuses a shared prefix
+  once it's past the model's minimum size, so most of each request can be served from cache. Each call logs
+  `judge tokens: prompt N, cached M` so you can see hits in the Vercel logs. Edit `judge.md` freely, but keep
+  anything puzzle-specific out of it.
+- Every verdict is written to `verdict_cache` as a log for reviewing the judge (it's never read back to skip a call).
 
 If the judge is unreachable, the guess doesn't cost a row.
 
@@ -136,8 +141,7 @@ npm run dev             # http://localhost:5173 (the /api functions run inside V
 ```
 
 Without `DATABASE_URL` there are no approved puzzles, so the game shows "still being spun"; the desk, verdict cache,
-stats and reminders need the database. Without `GEMINI_API_KEY`, only rule guesses that fuzzy-match an accepted phrasing can be judged; others show
-an error and don't cost a row. `vercel dev` also works if you have the Vercel CLI.
+stats and reminders need the database. Without `GEMINI_API_KEY` rule guesses can't be judged: players see an error and nothing is used up. `vercel dev` also works if you have the Vercel CLI.
 
 ```bash
 npm test                  # Vitest: game flow, answer matching, library, daily picker, fuzzy matching, puzzle checks,
@@ -172,7 +176,7 @@ npm run build             # typecheck + production build
 
 Tables (anonymous, no PII):
 
-- `verdict_cache(rule_id, normalized_guess, verdict, hint, created_at)` — `rule_id` is the puzzle id
+- `verdict_cache(rule_id, normalized_guess, verdict, hint, created_at)` — a log of judged rule guesses per puzzle
 - `daily_results(puzzle_no, solved_on_clue 0–5, count)` — 0 = unsolved; incremented by `POST /api/result`
 - `rate_limit(ip_hash, "window", count, updated_at)` — hourly windows; old rows are pruned automatically
 - `puzzles(puzzle_no, puzzle_date, status draft|approved|rejected, data jsonb, errors, note)` — puzzles from `/admin`
