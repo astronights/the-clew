@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
-import { validateChain, WEEKDAY_DIFFICULTY, type ChainPuzzle, type StoredPuzzle } from '../lib/chain';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { CHAIN_CLUES, validateChain, WEEKDAY_DIFFICULTY, type ChainPuzzle, type StoredPuzzle } from '../lib/chain';
 import { dateOfPuzzle, libraryPuzzleFor, puzzleNumber } from '../lib/daily';
 
 const TOKEN_KEY = 'clew:admin-token';
-const DAYS = 8; // today + the next 7
+const REVIEW_DAYS = 8; // today + the next 7
+
+/* ---------- small helpers ---------- */
 
 function readToken(): string {
   try {
@@ -32,271 +34,520 @@ async function call<T>(token: string, path: string, body?: unknown): Promise<T> 
   return data;
 }
 
-const fmtDate = (no: number) =>
-  dateOfPuzzle(no).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+const fmtDate = (no: number, opts: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short' }) =>
+  dateOfPuzzle(no).toLocaleDateString('en-GB', { ...opts, timeZone: 'UTC' });
+
+const noForDate = (y: number, m: number, d: number) => puzzleNumber(Date.UTC(y, m, d, 12));
+
+/** The built-in puzzle a day falls back to, without its library id. */
+function builtIn(no: number): ChainPuzzle {
+  const { id: _id, ...p } = libraryPuzzleFor(no);
+  return p;
+}
+
+const splitList = (s: string) =>
+  s
+    .split(/[\n,]/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+
+type StatusKey = 'approved' | 'draft' | 'rejected' | 'builtin';
+const statusOf = (stored?: StoredPuzzle): StatusKey => (stored ? stored.status : 'builtin');
+const STATUS_TEXT: Record<StatusKey, string> = { approved: 'approved', draft: 'needs review', rejected: 'rejected', builtin: 'built-in' };
+
+/* ---------- entry: login or desk ---------- */
 
 export function Admin() {
   const [token, setToken] = useState(readToken);
-  const [draftToken, setDraftToken] = useState('');
-  const [puzzles, setPuzzles] = useState<Record<number, StoredPuzzle>>({});
-  const [busy, setBusy] = useState<Record<number, string>>({});
-  const [msg, setMsg] = useState('');
-  const today = puzzleNumber();
-  const days = Array.from({ length: DAYS }, (_, i) => today + i);
-
-  const refresh = useCallback(async () => {
-    if (!token) return;
-    try {
-      const r = await call<{ puzzles: StoredPuzzle[] }>(token, `/api/admin/puzzles?from=${today}&days=${DAYS}`);
-      setPuzzles(Object.fromEntries(r.puzzles.map((p) => [p.puzzleNo, p])));
-      setMsg('');
-    } catch (e) {
-      setMsg((e as Error).message);
-      if (/token/i.test((e as Error).message)) {
-        writeToken('');
-        setToken('');
-      }
-    }
-  }, [token, today]);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
-
-  const act = async (no: number, label: string, fn: () => Promise<unknown>) => {
-    setBusy((b) => ({ ...b, [no]: label }));
-    try {
-      await fn();
-      await refresh();
-    } catch (e) {
-      setMsg(`No. ${no}: ${(e as Error).message}`);
-    } finally {
-      setBusy((b) => {
-        const { [no]: _, ...rest } = b;
-        return rest;
-      });
-    }
+  const lock = () => {
+    writeToken('');
+    setToken('');
   };
-
-  const generate = (no: number, extra = '') => act(no, 'Writing…', () => call(token, '/api/admin/generate', { puzzleNo: no, extra }));
-
-  const generateMissing = async () => {
-    const todo = days.filter((no) => !puzzles[no] || puzzles[no].status === 'rejected');
-    if (!todo.length) return setMsg('Every day already has a puzzle.');
-    for (const no of todo) {
-      setMsg(`Writing No. ${no} (${todo.indexOf(no) + 1} of ${todo.length})…`);
-      await generate(no);
-    }
-    setMsg('Done. Review each day below.');
-  };
-
   if (!token)
     return (
-      <section className="admin">
-        <h2>Puzzle desk</h2>
-        <p className="note admin-left">Enter the ADMIN_TOKEN set on the server.</p>
-        <form
-          className="field-row"
-          onSubmit={(e) => {
-            e.preventDefault();
-            writeToken(draftToken.trim());
-            setToken(draftToken.trim());
-          }}
-        >
-          <input className="input" type="password" autoComplete="current-password" aria-label="Admin token" value={draftToken} onChange={(e) => setDraftToken(e.target.value)} />
-          <button className="btn btn-primary" type="submit">
-            Unlock
-          </button>
-        </form>
-        {msg && <p className="form-error">{msg}</p>}
-      </section>
+      <Login
+        onUnlock={(t) => {
+          writeToken(t);
+          setToken(t);
+        }}
+      />
     );
+  return <Desk token={token} onLock={lock} />;
+}
 
-  const approved = days.filter((no) => puzzles[no]?.status === 'approved').length;
+function Login({ onUnlock }: { onUnlock: (token: string) => void }) {
+  const [value, setValue] = useState('');
+  return (
+    <section className="login">
+      <h2>Puzzle desk</h2>
+      <p className="admin-small">Enter the admin password (ADMIN_TOKEN).</p>
+      <form
+        className="login-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (value.trim()) onUnlock(value.trim());
+        }}
+      >
+        <label className="field-label" htmlFor="admin-token">
+          Password
+        </label>
+        <input id="admin-token" className="input" type="password" autoComplete="current-password" autoFocus value={value} onChange={(e) => setValue(e.target.value)} />
+        <button className="btn btn-primary btn-block" type="submit" disabled={!value.trim()}>
+          Unlock
+        </button>
+      </form>
+    </section>
+  );
+}
+
+/* ---------- desk ---------- */
+
+function Desk({ token, onLock }: { token: string; onLock: () => void }) {
+  const today = puzzleNumber();
+  const todayDate = dateOfPuzzle(today);
+  const [month, setMonth] = useState({ y: todayDate.getUTCFullYear(), m: todayDate.getUTCMonth() });
+  const [stored, setStored] = useState<Record<number, StoredPuzzle>>({});
+  const [selected, setSelected] = useState<number | null>(null);
+  const [msg, setMsg] = useState('');
+  const [writing, setWriting] = useState<string | null>(null);
+
+  const load = useCallback(
+    async (from: number, days: number) => {
+      try {
+        const r = await call<{ puzzles: StoredPuzzle[] }>(token, `/api/admin/puzzles?from=${Math.max(1, from)}&days=${days}`);
+        setStored((s) => {
+          const next = { ...s };
+          for (let n = from; n < from + days; n++) delete next[n];
+          for (const p of r.puzzles) next[p.puzzleNo] = p;
+          return next;
+        });
+      } catch (e) {
+        setMsg((e as Error).message);
+        if (/token/i.test((e as Error).message)) onLock();
+      }
+    },
+    [token, onLock],
+  );
+
+  const monthFirst = noForDate(month.y, month.m, 1);
+  const monthDays = new Date(Date.UTC(month.y, month.m + 1, 0)).getUTCDate();
+  useEffect(() => {
+    void load(today, REVIEW_DAYS);
+  }, [load, today]);
+  useEffect(() => {
+    void load(monthFirst, monthDays);
+  }, [load, monthFirst, monthDays]);
+
+  const refreshDay = (no: number) => load(no, 1);
+
+  const reviewDays = Array.from({ length: REVIEW_DAYS }, (_, i) => today + i);
+  const waiting = reviewDays.filter((no) => stored[no]?.status === 'draft').length;
+
+  const writeEmpty = async () => {
+    const todo = reviewDays.filter((no) => !stored[no] || stored[no].status === 'rejected');
+    if (!todo.length) return setMsg('Every day this week already has an AI puzzle.');
+    for (const [i, no] of todo.entries()) {
+      setWriting(`Writing No. ${no} (${i + 1} of ${todo.length})…`);
+      try {
+        await call(token, '/api/admin/generate', { puzzleNo: no });
+      } catch (e) {
+        setMsg(`No. ${no}: ${(e as Error).message}`);
+      }
+      await refreshDay(no);
+    }
+    setWriting(null);
+    setMsg('Done. Open each day to review it.');
+  };
 
   return (
     <section className="admin">
       <div className="admin-head">
         <h2>Puzzle desk</h2>
-        <button
-          className="btn btn-link"
-          onClick={() => {
-            writeToken('');
-            setToken('');
-          }}
-        >
+        <button className="btn btn-link" onClick={onLock}>
           Lock
         </button>
       </div>
-      <p className="note admin-left">
-        {approved} of {DAYS} days approved. Approved puzzles replace that day's built-in puzzle; other days play a built-in one.
-      </p>
-      <button className="btn btn-primary btn-block" onClick={generateMissing} disabled={Object.keys(busy).length > 0}>
-        Write puzzles for empty days
-      </button>
-      {msg && (
-        <p className="note admin-left" role="status">
-          {msg}
-        </p>
+
+      <div className="admin-section">
+        <div className="admin-section-head">
+          <h3>This week</h3>
+          <span className="admin-small">{waiting ? `${waiting} waiting for review` : 'nothing waiting'}</span>
+        </div>
+        <ul className="review-list">
+          {reviewDays.map((no) => {
+            const st = statusOf(stored[no]);
+            const p = stored[no]?.data ?? builtIn(no);
+            return (
+              <li key={no}>
+                <button className="review-row" onClick={() => setSelected(no)}>
+                  <span className="review-date">
+                    {fmtDate(no)}
+                    {no === today && <span className="chip">today</span>}
+                  </span>
+                  <span className="review-title">{p.connection}</span>
+                  <span className={`chip status-${st}`}>{STATUS_TEXT[st]}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        <button className="btn btn-primary btn-block" onClick={writeEmpty} disabled={!!writing}>
+          {writing ?? 'Write AI puzzles for empty days'}
+        </button>
+        {msg && (
+          <p className="admin-small" role="status">
+            {msg}
+          </p>
+        )}
+      </div>
+
+      <div className="admin-section">
+        <Calendar
+          month={month}
+          today={today}
+          stored={stored}
+          onMonth={(delta) => setMonth(({ y, m }) => ({ y: m + delta < 0 ? y - 1 : m + delta > 11 ? y + 1 : y, m: (m + delta + 12) % 12 }))}
+          onPick={setSelected}
+        />
+      </div>
+
+      {selected !== null && (
+        <DayEditor
+          key={selected}
+          no={selected}
+          today={today}
+          stored={stored[selected]}
+          token={token}
+          onClose={() => setSelected(null)}
+          onChanged={() => refreshDay(selected)}
+        />
       )}
-      {days.map((no) => (
-        <DayCard key={no} no={no} isToday={no === today} stored={puzzles[no]} busy={busy[no]} onGenerate={(extra) => generate(no, extra)} onAct={act} token={token} />
-      ))}
     </section>
   );
 }
 
-interface CardProps {
-  no: number;
-  isToday: boolean;
-  stored?: StoredPuzzle;
-  busy?: string;
-  token: string;
-  onGenerate: (extra: string) => void;
-  onAct: (no: number, label: string, fn: () => Promise<unknown>) => Promise<void>;
-}
+/* ---------- calendar ---------- */
 
-function DayCard({ no, isToday, stored, busy, token, onGenerate, onAct }: CardProps) {
-  const [editing, setEditing] = useState(false);
-  const [text, setText] = useState('');
-  const [extra, setExtra] = useState('');
-  const p = stored?.data;
-  const status = stored?.status ?? 'empty';
-  const fallback = libraryPuzzleFor(no);
-  const parsed = (() => {
-    try {
-      return JSON.parse(text) as ChainPuzzle;
-    } catch {
-      return null;
-    }
-  })();
-  const editErrors = editing ? (parsed ? validateChain(parsed) : ['not valid JSON']) : [];
-  const post = (body: object) => call(token, '/api/admin/puzzles', { puzzleNo: no, ...body });
+const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+function Calendar({
+  month,
+  today,
+  stored,
+  onMonth,
+  onPick,
+}: {
+  month: { y: number; m: number };
+  today: number;
+  stored: Record<number, StoredPuzzle>;
+  onMonth: (delta: number) => void;
+  onPick: (no: number) => void;
+}) {
+  const first = new Date(Date.UTC(month.y, month.m, 1));
+  const daysInMonth = new Date(Date.UTC(month.y, month.m + 1, 0)).getUTCDate();
+  const lead = (first.getUTCDay() + 6) % 7; // Monday first
+  const cells = useMemo(() => [...Array(lead).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)], [lead, daysInMonth]);
+  const label = first.toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 
   return (
-    <article className={`day is-${status}`}>
-      <header className="day-head">
-        <div>
-          <strong>
-            No. {no} · {fmtDate(no)}
-          </strong>
-          {isToday && <span className="chip">live today</span>}
-          <div className="note admin-left">target difficulty {WEEKDAY_DIFFICULTY[dateOfPuzzle(no).getUTCDay()]}/5</div>
-        </div>
-        <span className={`chip status-${status}`}>{status}</span>
-      </header>
-
-      {!p && <p className="note admin-left">No AI puzzle yet. If none is approved, this day plays the built-in puzzle: “{fallback.connection}” ({fallback.clues.join(', ')} → {fallback.answer})</p>}
-
-      {p && !editing && (
-        <div className="day-body">
-          <ol className="day-clues">
-            {p.clues.map((c, i) => {
-              const alt = (p.clueAnswers?.[i] ?? []).filter((x) => x !== c);
-              return (
-                <li key={i}>
-                  {c}
-                  {alt.length > 0 && <span className="note"> · guess: {alt.join(', ')}</span>}
-                </li>
-              );
-            })}
-            <li className="is-answer">
-              {p.answer}
-              {p.acceptedAnswers.length > 1 && <span className="note"> · also {p.acceptedAnswers.filter((a) => a !== p.answer).join(', ')}</span>}
-            </li>
-          </ol>
-          <p>
-            <strong>{p.connection}</strong>
-          </p>
-          <p className="admin-small">{p.explanation}</p>
-          <p className="admin-small">
-            {p.category} · difficulty {p.difficulty}/5{p.topical?.used ? ` · topical: ${p.topical.note}` : ''}
-          </p>
-          <details>
-            <summary className="admin-small">Accepted phrasings ({p.acceptedPhrasings.length}){p.sources?.length ? ` · sources (${p.sources.length})` : ''}</summary>
-            <ul className="admin-small">
-              {p.acceptedPhrasings.map((a, i) => (
-                <li key={i}>{a}</li>
-              ))}
-            </ul>
-            {p.sources?.length ? <p className="admin-small">Sources: {p.sources.join(' · ')}</p> : null}
-          </details>
-          {stored!.errors.length > 0 && (
-            <ul className="form-error">
-              {stored!.errors.map((e, i) => (
-                <li key={i}>{e}</li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-
-      {editing && (
-        <div className="day-body">
-          <textarea className="input admin-json" value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} aria-label={`Puzzle ${no} JSON`} />
-          {editErrors.length > 0 && <p className="form-error">{editErrors.join('; ')}</p>}
-          <div className="btn-row">
-            <button className="btn" onClick={() => setEditing(false)}>
-              Cancel
-            </button>
+    <div className="calendar">
+      <div className="calendar-head">
+        <button className="icon-btn" onClick={() => onMonth(-1)} aria-label="Previous month">
+          ‹
+        </button>
+        <h3>{label}</h3>
+        <button className="icon-btn" onClick={() => onMonth(1)} aria-label="Next month">
+          ›
+        </button>
+      </div>
+      <div className="calendar-grid" role="grid" aria-label={label}>
+        {WEEKDAYS.map((w, i) => (
+          <span key={`w${i}`} className="calendar-wd" aria-hidden="true">
+            {w}
+          </span>
+        ))}
+        {cells.map((d, i) => {
+          if (d === null) return <span key={`e${i}`} />;
+          const no = noForDate(month.y, month.m, d);
+          if (no < 1) return <span key={d} className="calendar-day is-before">{d}</span>;
+          const st = statusOf(stored[no]);
+          const when = no < today ? 'is-past' : no === today ? 'is-today' : 'is-future';
+          return (
             <button
-              className="btn btn-primary"
-              disabled={!parsed}
-              onClick={() =>
-                onAct(no, 'Saving…', async () => {
-                  await post({ action: 'save', data: parsed });
-                  setEditing(false);
-                })
-              }
+              key={d}
+              className={`calendar-day ${when} status-${st}`}
+              onClick={() => onPick(no)}
+              aria-label={`${fmtDate(no, { weekday: 'long', day: 'numeric', month: 'long' })}, No. ${no}, ${STATUS_TEXT[st]}`}
             >
-              Save as draft
+              <span className="calendar-num">{d}</span>
+              <span className="calendar-dot" aria-hidden="true" />
             </button>
-          </div>
-        </div>
-      )}
-
-      {busy ? (
-        <p className="note admin-left">{busy}</p>
-      ) : (
-        !editing && (
-          <div className="day-actions">
-            {status === 'draft' && (
-              <button className="btn btn-primary" disabled={!!stored?.errors.length} onClick={() => onAct(no, 'Approving…', () => post({ action: 'approve' }))}>
-                Approve
-              </button>
-            )}
-            {status === 'approved' && (
-              <button className="btn" onClick={() => onAct(no, 'Updating…', () => post({ action: 'unapprove' }))}>
-                Unapprove
-              </button>
-            )}
-            {(status === 'draft' || status === 'approved') && (
-              <button className="btn" onClick={() => onAct(no, 'Rejecting…', () => post({ action: 'reject' }))}>
-                Reject
-              </button>
-            )}
-            {p && status !== 'approved' && (
-              <button
-                className="btn"
-                onClick={() => {
-                  setText(JSON.stringify(p, null, 2));
-                  setEditing(true);
-                }}
-              >
-                Edit
-              </button>
-            )}
-            {status !== 'approved' && (
-              <div className="field-row day-regen">
-                <input className="input" placeholder="note for the writer (optional)" value={extra} onChange={(e) => setExtra(e.target.value)} aria-label="Note for the writer" />
-                <button className="btn" onClick={() => onGenerate(extra)}>
-                  {p ? 'Rewrite' : 'Write'}
-                </button>
-              </div>
-            )}
-          </div>
-        )
-      )}
-    </article>
+          );
+        })}
+      </div>
+      <p className="calendar-key admin-small">
+        <span className="calendar-dot status-approved" /> approved AI
+        <span className="calendar-dot status-draft" /> needs review
+        <span className="calendar-dot status-builtin" /> built-in
+      </p>
+    </div>
   );
 }
+
+/* ---------- day editor ---------- */
+
+interface EditorProps {
+  no: number;
+  today: number;
+  stored?: StoredPuzzle;
+  token: string;
+  onClose: () => void;
+  onChanged: () => Promise<void>;
+}
+
+function DayEditor({ no, today, stored, token, onClose, onChanged }: EditorProps) {
+  const past = no < today;
+  // past days show what actually played: the approved AI puzzle, otherwise the built-in one
+  const playedAi = stored?.status === 'approved';
+  const base: ChainPuzzle = past ? (playedAi ? stored!.data : builtIn(no)) : (stored?.data ?? builtIn(no));
+  const [draft, setDraft] = useState<ChainPuzzle>(base);
+  const [dirty, setDirty] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [ask, setAsk] = useState('');
+  const st = statusOf(stored);
+  const problems = validateChain(draft);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  // when the stored puzzle changes (after save / AI), show it again
+  useEffect(() => {
+    setDraft(past ? (stored?.status === 'approved' ? stored.data : builtIn(no)) : (stored?.data ?? builtIn(no)));
+    setDirty(false);
+  }, [stored, no, past]);
+
+  const set = (patch: Partial<ChainPuzzle>) => {
+    setDraft((d) => ({ ...d, ...patch }));
+    setDirty(true);
+  };
+  const setClue = (i: number, value: string) => set({ clues: draft.clues.map((c, j) => (j === i ? value : c)) });
+  const setClueAnswers = (i: number, value: string) => {
+    const all = Array.from({ length: CHAIN_CLUES }, (_, j) => draft.clueAnswers?.[j] ?? [draft.clues[j]]);
+    all[i] = splitList(value);
+    set({ clueAnswers: all });
+  };
+
+  const run = async (label: string, fn: () => Promise<unknown>) => {
+    setBusy(label);
+    setError(null);
+    try {
+      await fn();
+      await onChanged();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
+  const post = (body: object) => call(token, '/api/admin/puzzles', { puzzleNo: no, ...body });
+
+  const rows = [...draft.clues, draft.answer];
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal editor" role="dialog" aria-modal="true" aria-labelledby="editor-title" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <div>
+            <h2 id="editor-title">
+              No. {no} · {fmtDate(no, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+            </h2>
+            <span className={`chip status-${st}`}>{STATUS_TEXT[st]}</span>
+            {!past && <span className="admin-small"> target difficulty {WEEKDAY_DIFFICULTY[dateOfPuzzle(no).getUTCDay()]}/5</span>}
+          </div>
+          <button className="icon-btn" onClick={onClose} aria-label="Close">
+            ✕
+          </button>
+        </div>
+
+        <ol className="editor-rows">
+          {rows.map((r, i) => (
+            <li key={i} className={i === rows.length - 1 ? 'is-answer' : ''}>
+              {r || <em>empty</em>}
+            </li>
+          ))}
+        </ol>
+
+        {past ? (
+          <div className="editor-view">
+            <p>
+              <strong>{draft.connection}</strong>
+            </p>
+            <p className="admin-small">{draft.explanation}</p>
+            <p className="admin-small">
+              {playedAi ? 'Played this approved AI puzzle.' : 'Played the built-in puzzle.'} Past days can't be changed.
+            </p>
+          </div>
+        ) : (
+          <>
+            {!stored && <p className="admin-small">This day plays a built-in puzzle. Edit it below and save to make it this day's own draft.</p>}
+
+            <div className="ai-box">
+              <label className="field-label" htmlFor="ask">
+                Ask AI to change it
+              </label>
+              <textarea
+                id="ask"
+                className="input admin-textarea"
+                rows={2}
+                placeholder="e.g. make clue 1 harder"
+                value={ask}
+                onChange={(e) => setAsk(e.target.value)}
+              />
+              <div className="btn-row">
+                <button className="btn" disabled={!!busy} onClick={() => run('Writing a new one…', () => call(token, '/api/admin/generate', { puzzleNo: no, extra: ask, replace: true }))}>
+                  Start over
+                </button>
+                <button
+                  className="btn btn-primary"
+                  disabled={!!busy || ask.trim().length < 3}
+                  onClick={() =>
+                    run('Updating with AI…', async () => {
+                      await call(token, '/api/admin/revise', { puzzleNo: no, instruction: ask, data: draft });
+                      setAsk('');
+                    })
+                  }
+                >
+                  Update with AI
+                </button>
+              </div>
+            </div>
+
+            <div className="editor-form">
+              <Field label="The rule (shown after the game)">
+                <input className="input" value={draft.connection} onChange={(e) => set({ connection: e.target.value })} />
+              </Field>
+              {draft.clues.map((c, i) => (
+                <div key={i} className="clue-edit">
+                  <Field label={`Clue ${i + 1}`}>
+                    <input className="input" value={c} onChange={(e) => setClue(i, e.target.value)} />
+                  </Field>
+                  <Field label="also accepts">
+                    <input
+                      className="input"
+                      value={(draft.clueAnswers?.[i] ?? []).filter((x) => x !== c).join(', ')}
+                      placeholder="comma separated"
+                      onChange={(e) => setClueAnswers(i, `${c}, ${e.target.value}`)}
+                    />
+                  </Field>
+                </div>
+              ))}
+              <div className="clue-edit">
+                <Field label="Answer (clue 5)">
+                  <input className="input" value={draft.answer} onChange={(e) => set({ answer: e.target.value })} />
+                </Field>
+                <Field label="also accepts">
+                  <input
+                    className="input"
+                    value={draft.acceptedAnswers.filter((a) => a !== draft.answer).join(', ')}
+                    placeholder="comma separated"
+                    onChange={(e) => set({ acceptedAnswers: [draft.answer, ...splitList(e.target.value)] })}
+                  />
+                </Field>
+              </div>
+              <Field label="Explanation (shown after the game)">
+                <textarea className="input admin-textarea" rows={2} value={draft.explanation} onChange={(e) => set({ explanation: e.target.value })} />
+              </Field>
+              <Field label="Ways players might name the rule (one per line)">
+                <textarea
+                  className="input admin-textarea"
+                  rows={5}
+                  value={draft.acceptedPhrasings.join('\n')}
+                  onChange={(e) => set({ acceptedPhrasings: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) })}
+                />
+              </Field>
+              <div className="clue-edit">
+                <Field label="Category">
+                  <input className="input" value={draft.category} onChange={(e) => set({ category: e.target.value })} />
+                </Field>
+                <Field label="Difficulty">
+                  <select className="input" value={draft.difficulty} onChange={(e) => set({ difficulty: Number(e.target.value) })}>
+                    {[1, 2, 3, 4, 5].map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+              {draft.topical?.used && <p className="admin-small">Topical: {draft.topical.note}</p>}
+              {draft.sources?.length ? <p className="admin-small">Sources: {draft.sources.join(' · ')}</p> : null}
+            </div>
+
+            {problems.length > 0 && (
+              <ul className="form-error editor-problems">
+                {problems.map((p, i) => (
+                  <li key={i}>{p}</li>
+                ))}
+              </ul>
+            )}
+            {error && <p className="form-error">{error}</p>}
+
+            <div className="editor-actions">
+              {busy ? (
+                <p className="admin-small">{busy}</p>
+              ) : (
+                <>
+                  {(dirty || !stored) && (
+                    <button className="btn" onClick={() => run('Saving…', () => post({ action: 'save', data: draft }))}>
+                      Save as draft
+                    </button>
+                  )}
+                  {stored && !dirty && st !== 'approved' && (
+                    <button className="btn btn-primary" disabled={problems.length > 0} onClick={() => run('Approving…', () => post({ action: 'approve' }))}>
+                      Approve
+                    </button>
+                  )}
+                  {stored && !dirty && st === 'approved' && (
+                    <button className="btn" onClick={() => run('Updating…', () => post({ action: 'unapprove' }))}>
+                      Unapprove
+                    </button>
+                  )}
+                  {stored && st !== 'rejected' && (
+                    <button className="btn btn-link" onClick={() => run('Rejecting…', () => post({ action: 'reject' }))}>
+                      Reject (use built-in)
+                    </button>
+                  )}
+                  {dirty && (
+                    <button
+                      className="btn btn-link"
+                      onClick={() => {
+                        setDraft(base);
+                        setDirty(false);
+                      }}
+                    >
+                      Discard changes
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="field">
+      <span className="field-label">{label}</span>
+      {children}
+    </label>
+  );
+}
+

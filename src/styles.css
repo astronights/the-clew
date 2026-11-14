@@ -890,9 +890,10 @@ input {
 .admin {
   padding-bottom: 40px;
   display: grid;
-  gap: 12px;
+  gap: 18px;
 }
-.admin h2 {
+.admin h2,
+.admin h3 {
   margin: 0;
 }
 .admin-head {
@@ -900,34 +901,19 @@ input {
   align-items: center;
   justify-content: space-between;
 }
-.admin-left {
-  text-align: left;
-}
 .admin-small {
   font-size: 0.85rem;
   color: var(--ink-2);
-  margin: 0 0 6px;
+  margin: 0;
 }
-.day {
-  border: 1.5px solid var(--ink);
-  border-radius: 6px;
-  padding: 12px;
-  background: var(--tag);
+.admin-section {
+  display: grid;
+  gap: 10px;
 }
-.day.is-approved {
-  border-color: var(--right);
-  box-shadow: inset 4px 0 0 var(--right);
-}
-.day.is-rejected,
-.day.is-empty {
-  border-style: dashed;
-}
-.day-head {
+.admin-section-head {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 8px;
 }
 .chip {
   display: inline-block;
@@ -936,51 +922,246 @@ input {
   border: 1px solid var(--ink);
   border-radius: 999px;
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
-.status-approved {
+.chip.status-approved {
   border-color: var(--right);
   color: var(--right);
 }
-.status-rejected,
-.status-empty {
-  color: var(--ink-3);
-  border-color: var(--line);
+.chip.status-draft {
+  border-color: var(--thread);
+  color: var(--thread);
 }
-.day-clues {
-  margin: 0 0 10px;
+.chip.status-rejected,
+.chip.status-builtin {
+  border-color: var(--line);
+  color: var(--ink-3);
+}
+
+/* login */
+.login {
+  max-width: 340px;
+  width: 100%;
+  margin: 12vh auto 0;
+  display: grid;
+  gap: 8px;
+}
+.login h2 {
+  font-size: 1.6rem;
+  margin: 0;
+}
+.login-form {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+.login-form .btn {
+  margin-top: 8px;
+}
+
+/* this week */
+.review-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.review-list li + li {
+  border-top: 1px solid var(--line);
+}
+.review-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 92px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 0;
+  background: var(--tag);
+  text-align: left;
+  cursor: pointer;
+}
+.review-row:hover {
+  background: var(--hatch);
+}
+.review-date {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--ink-2);
+}
+.review-date .chip {
+  margin: 2px 0 0;
+  display: table;
+}
+.review-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.95rem;
+}
+
+/* calendar */
+.calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.calendar-wd {
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--ink-3);
+}
+.calendar-day {
+  aspect-ratio: 1;
+  min-height: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--tag);
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.calendar-day.is-past {
+  color: var(--ink-2);
+  background: transparent;
+}
+.calendar-day.is-today {
+  border: 2px solid var(--thread);
+  font-weight: 600;
+}
+.calendar-day.is-before {
+  border: 0;
+  color: var(--ink-3);
+  cursor: default;
+  background: transparent;
+}
+.calendar-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+}
+.calendar-day.status-approved .calendar-dot,
+.calendar-dot.status-approved {
+  background: var(--right);
+}
+.calendar-day.status-draft .calendar-dot,
+.calendar-dot.status-draft {
+  border-color: var(--thread);
+}
+.calendar-day.status-builtin .calendar-dot,
+.calendar-dot.status-builtin {
+  background: var(--line);
+}
+.calendar-key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  margin-top: 8px;
+}
+.calendar-key .calendar-dot {
+  margin-left: 8px;
+}
+.calendar-key .calendar-dot:first-child {
+  margin-left: 0;
+}
+
+/* day editor */
+.modal.editor {
+  max-width: 520px;
+  max-height: 94dvh;
+}
+.modal-head h2 {
+  font-size: 1.2rem;
+  margin-bottom: 4px;
+}
+.modal-head .chip {
+  margin-left: 0;
+}
+.editor-rows {
+  margin: 8px 0 14px;
   padding-left: 1.4rem;
   font-family: var(--mono);
   font-size: 0.95rem;
 }
-.day-clues li {
+.editor-rows li {
   padding: 2px 0;
 }
-.day-clues .is-answer {
+.editor-rows .is-answer {
   color: var(--thread);
   font-weight: 600;
 }
-.day-actions {
+.ai-box {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  margin-bottom: 14px;
+  border: 1.5px dashed var(--thread);
+  border-radius: 6px;
+}
+.ai-box .btn {
+  height: 44px;
+  white-space: nowrap;
+}
+.admin-textarea {
+  height: auto;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  resize: vertical;
+}
+.editor-form {
+  display: grid;
+  gap: 10px;
+}
+.clue-edit {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 8px;
+}
+.editor-form .input {
+  height: 42px;
+  font-size: 0.92rem;
+}
+.editor-form textarea.input {
+  height: auto;
+}
+.editor-problems {
+  margin: 12px 0 0;
+  padding-left: 1.2rem;
+}
+.editor-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
-  margin-top: 6px;
+  margin-top: 14px;
 }
-.day-actions .btn {
-  height: 42px;
+.editor-actions .btn {
+  height: 44px;
 }
-.day-regen {
-  flex: 1 1 100%;
-}
-.admin-json {
-  height: 320px;
-  padding: 10px;
-  font-size: 0.78rem;
-  line-height: 1.45;
-  resize: vertical;
+.editor-view p {
   margin-bottom: 8px;
 }
 details summary {

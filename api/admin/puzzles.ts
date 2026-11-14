@@ -5,7 +5,7 @@ import { getSql } from '../_lib/db';
 import { json, readJson } from '../_lib/http';
 import { listPuzzles, savePuzzle, setStatus } from '../_lib/puzzles';
 
-/** GET ?from=N&days=7 → saved puzzles in that range (default: today + 6 days). */
+/** GET ?from=N&days=7 → saved puzzles in that range (default: today + 6 days; up to 62 days, past included). */
 export async function GET(req: Request): Promise<Response> {
   const denied = requireAdmin(req);
   if (denied) return denied;
@@ -14,7 +14,7 @@ export async function GET(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const today = puzzleNumber();
   const from = Number(url.searchParams.get('from')) || today;
-  const days = Math.min(Math.max(Number(url.searchParams.get('days')) || 7, 1), 31);
+  const days = Math.min(Math.max(Number(url.searchParams.get('days')) || 7, 1), 62);
   return json({ today, from, days, puzzles: await listPuzzles(sql, from, from + days - 1) });
 }
 

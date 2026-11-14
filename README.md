@@ -63,10 +63,15 @@ own text and never the row before it.
   markdown to change the house style; no code changes needed. Recent and upcoming puzzles are passed in so it doesn't
   repeat itself, and difficulty follows the weekday (gentle Monday, toughest Saturday).
 - **Checking:** every draft runs the same checks as the library (`src/lib/chain.ts`). Drafts with problems can't be approved.
-- **Reviewing:** open **`/admin`** (not linked anywhere, `noindex`) and enter `ADMIN_TOKEN`. It shows today plus the
-  next 7 days. **Write puzzles for empty days** drafts the whole week; then per day you can **Approve**, **Reject**,
-  **Edit** the JSON, or **Rewrite** with an optional note to the writer ("make it about music"). Days without an
-  approved puzzle show which built-in puzzle they'll play.
+- **Reviewing:** open **`/admin`** (not linked anywhere, `noindex`) and enter `ADMIN_TOKEN`.
+  - **This week** lists today plus the next 7 days with their status (approved / needs review / built-in).
+    **Write AI puzzles for empty days** drafts every day that doesn't have one.
+  - **The calendar** shows any month; tap a day to see the puzzle that played or will play. Past days are view-only.
+  - **The day editor** has a field for every part (clues and what each accepts as a guess, the answer and its
+    spellings, the rule and its phrasings, explanation, category, difficulty), live checks, and **Save as draft /
+    Approve / Unapprove / Reject**. **Ask AI to change it** sends an instruction ("make clue 1 harder", "use football
+    instead") plus the current puzzle to Gemini (`/api/admin/revise`) and saves the result as a draft; **Start over**
+    writes a fresh one. A day still on its built-in puzzle can be edited and saved as its own draft.
 - `/api/puzzle` only ever serves today or earlier, so upcoming puzzles can't be peeked at.
 
 ## Stack
@@ -86,6 +91,7 @@ api/
   puzzle.ts           GET  /api/puzzle?no=N → today's approved AI puzzle (404 = play the built-in one)
   admin/puzzles.ts    GET/POST the week's drafts; approve / reject / save (ADMIN_TOKEN)
   admin/generate.ts   POST one draft with Gemini + Google Search (ADMIN_TOKEN)
+  admin/revise.ts     POST an instruction → Gemini updates the day's puzzle, saved as a draft (ADMIN_TOKEN)
   _lib/               db client, Gemini judge + sanitising, generator, puzzle store, rate limit, admin auth
 db/migrations/        001_init.sql, 002_puzzles.sql
 prompts/              puzzle-generator.md — the editable puzzle-writing prompt
@@ -162,7 +168,7 @@ Tables (anonymous, no PII):
    integration, which sets `DATABASE_URL` for you).
 3. Run `npm run db:migrate && npm run db:seed` once against the production database.
 4. Deploy. Files in `api/` become functions; `api/_lib` is shared code, not routes. `vercel.json` bundles `prompts/`
-   with the generator and gives it 60 s.
+   with the generator and reviser and gives them 60 s.
 5. Each week, open `/admin`, write the week's puzzles, review and approve.
 
 The package is CommonJS on purpose (no `"type": "module"`), so Vercel compiles `/api` to CommonJS and the

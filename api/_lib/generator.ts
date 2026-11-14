@@ -25,6 +25,31 @@ export function promptFor(puzzleNo: number, avoid: string[], extra = ''): string
   });
 }
 
+/**
+ * Prompt for changing an existing puzzle: the house rules from the writer prompt, the current
+ * puzzle, and the editor's instruction. The model returns the whole updated puzzle.
+ */
+export function revisePromptFor(puzzleNo: number, current: ChainPuzzle, instruction: string, avoid: string[]): string {
+  const rules = promptFor(puzzleNo, avoid, '');
+  return `${rules}
+
+---
+
+## Revision task
+
+You already wrote the puzzle below. The editor wants a change. Apply **only** what they ask for and keep
+everything else as it is, unless the change forces other fields to change (e.g. new clues need new
+clueAnswers, a new answer needs new acceptedAnswers and explanation). Keep every rule above.
+
+Editor's instruction:
+${instruction.trim().slice(0, 1000)}
+
+Current puzzle:
+${JSON.stringify(current, null, 2)}
+
+Reply with the complete updated puzzle as a single JSON object, in exactly the same shape, and nothing else.`;
+}
+
 /** Pull the first {...} JSON object out of a model reply (search-grounded replies can't use JSON mode). */
 export function extractJson(text: string): unknown {
   const start = text.indexOf('{');

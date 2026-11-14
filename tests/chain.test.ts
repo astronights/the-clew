@@ -98,3 +98,16 @@ describe('guessing a disguised row', () => {
     expect(validateChain({ ...planets, clueAnswers: [['Mercury'], ['Venus'], ['Earth'], ['Mars']] })).toEqual([]);
   });
 });
+
+import { revisePromptFor } from '../api/_lib/generator';
+
+describe('AI revision prompt', () => {
+  it('keeps the house rules and includes the instruction and current puzzle', () => {
+    const t = revisePromptFor(48, planets, 'make clue 1 harder', ['- Greek letters (Language)']);
+    expect(t).toContain('make clue 1 harder');
+    expect(t).toContain('"answer": "Jupiter"');
+    expect(t).toContain('Greek letters');
+    expect(t).toMatch(/Apply \*\*only\*\* what they ask for/);
+    expect(t).not.toMatch(/\{\{\w+\}\}/);
+  });
+});
