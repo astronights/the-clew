@@ -105,7 +105,9 @@ async function callWriter(prompt: string, timeoutMs: number): Promise<WriterRepl
     for (let attempt = 0; !res.ok && attempt < 2; attempt++) {
       const err = describeGeminiError(res.status, await res.text(), model);
       if (res.status !== 429) throw err;
-      if (withSearch && /Search/.test(err.message)) withSearch = false;
+      console.warn(`writer ${model}${withSearch ? ' +search' : ''}: 429 (${err.window ?? 'unnamed'} limit)`, err.message);
+      // Search grounding has its own, smaller allowance: when Google names it, or doesn't say which limit, try without it
+      if (withSearch && (/Search/.test(err.message) || err.window === null)) withSearch = false;
       else if (err.window !== 'day' && (err.retryAfter ?? 0) <= 20 && Date.now() - started < timeoutMs / 2) await sleep(((err.retryAfter ?? 5) + 1) * 1000);
       else throw err;
       res = await ask(withSearch);

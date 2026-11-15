@@ -44,7 +44,7 @@ export function describeGeminiError(status: number, bodyText: string, model: str
     else if (window === 'minute')
       msg = `Gemini's per-minute limit for ${what} was hit. Wait ${retryAfter ?? 60}s and try again.`;
     else
-      msg = `Gemini quota exceeded for ${what}${retryAfter ? ` (retry in ${retryAfter}s)` : ''}. If this keeps happening, this model may have no free tier on your key: switch model or enable billing.${quotaIds.trim() ? ` (Google: ${quotaIds.trim().slice(0, 120)})` : ''}`;
+      msg = `Gemini quota exceeded for ${what}${retryAfter ? ` (retry in ${retryAfter}s)` : ''}. If this keeps happening, this model may have no free tier on your key: switch model or enable billing. Google said: ${(quotaIds.trim() || body.error?.message || bodyText).slice(0, 240)}`;
     return new GeminiError(msg, status, retryAfter, window);
   }
   if (status === 404 || (status === 400 && /model/i.test(body.error?.message ?? '')))
