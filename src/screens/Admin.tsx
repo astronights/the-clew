@@ -151,13 +151,25 @@ function Desk({ token, onLock }: { token: string; onLock: () => void }) {
   const reviewDays = Array.from({ length: REVIEW_DAYS }, (_, i) => today + i);
   const waiting = reviewDays.filter((no) => stored[no]?.status === 'draft').length;
 
-  const writeEmpty = async () => {
-    const todo = reviewDays.filter((no) => !stored[no] || stored[no].status === 'rejected');
+  const writeDays = async (replace: boolean) => {
+    // rewriting skips today (it may already be live); writing fills empty or rejected days
+    const todo = replace
+      ? reviewDays.filter((no) => no > today)
+      : reviewDays.filter((no) => !stored[no] || stored[no].status === 'rejected');
     if (!todo.length) return setMsg('Every day this week already has an AI puzzle.');
-    // one request writes every empty day (free-tier per-minute limits are tiny)
+    if (replace) {
+      const approvedCount = todo.filter((no) => stored[no]?.status === 'approved').length;
+      const ok = window.confirm(
+        `Rewrite all ${todo.length} upcoming days (No. ${todo[0]}–${todo[todo.length - 1]}) with the current prompt?` +
+          (approvedCount ? ` ${approvedCount} approved puzzle${approvedCount === 1 ? '' : 's'} will be replaced by drafts you'll need to approve again.` : '') +
+          " Today's puzzle is kept.",
+      );
+      if (!ok) return;
+    }
+    // one request writes every day (free-tier per-minute limits are tiny)
     setWriting(`Writing ${todo.length} puzzle${todo.length === 1 ? '' : 's'} in one request… this can take a minute or two`);
     try {
-      const r = await call<{ written: { puzzleNo: number; errors: string[] }[]; missing?: number[] }>(token, '/api/admin/generate-batch', { puzzleNos: todo });
+      const r = await call<{ written: { puzzleNo: number; errors: string[] }[]; missing?: number[] }>(token, '/api/admin/generate-batch', { puzzleNos: todo, replace });
       const withProblems = r.written.filter((w) => w.errors.length).length;
       setMsg(
         `Wrote ${r.written.length} draft${r.written.length === 1 ? '' : 's'}.` +
@@ -206,8 +218,11 @@ function Desk({ token, onLock }: { token: string; onLock: () => void }) {
             );
           })}
         </ul>
-        <button className="btn btn-primary btn-block" onClick={writeEmpty} disabled={!!writing}>
+        <button className="btn btn-primary btn-block" onClick={() => void writeDays(false)} disabled={!!writing}>
           {writing ?? 'Write AI puzzles for empty days'}
+        </button>
+        <button className="btn btn-link" onClick={() => void writeDays(true)} disabled={!!writing}>
+          Rewrite all upcoming days
         </button>
         {msg && (
           <p className="admin-small" role="status">

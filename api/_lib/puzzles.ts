@@ -60,11 +60,12 @@ export async function setStatus(sql: Sql, puzzleNo: number, status: PuzzleStatus
 }
 
 /** Connections and categories to steer the generator away from repeats. */
-export async function recentForAvoid(sql: Sql, around: number): Promise<string[]> {
+/** Rules of recent and upcoming puzzles, for the writer's avoid list. `skip` = days being (re)written now. */
+export async function recentForAvoid(sql: Sql, around: number, skip: number[] = [around]): Promise<string[]> {
   const rows = (await sql.query(
     `select puzzle_no, data->>'connection' as connection, data->>'category' as category from puzzles
      where puzzle_no between $1 and $2 and status <> 'rejected' order by puzzle_no`,
     [around - 60, around + 14],
   )) as { puzzle_no: number; connection: string; category: string }[];
-  return rows.filter((r) => Number(r.puzzle_no) !== around).map((r) => `- ${r.connection} (${r.category})`);
+  return rows.filter((r) => !skip.includes(Number(r.puzzle_no))).map((r) => `- ${r.connection} (${r.category})`);
 }
