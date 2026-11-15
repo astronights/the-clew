@@ -30,7 +30,7 @@ export function HowToPlay({ onClose }: { onClose: () => void }) {
             better.
           </li>
         </ol>
-        <p className="note">New sequence every day at 03:14 UTC ({rolloverLocalTime()} your time).</p>
+        <p className="note">New sequence every day at 03:14:15 UTC ({rolloverLocalTime()} your time).</p>
         <button ref={btn} className="btn btn-primary btn-block" onClick={onClose}>
           Let's go
         </button>

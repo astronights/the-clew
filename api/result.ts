@@ -12,7 +12,7 @@ export async function POST(req: Request): Promise<Response> {
   const puzzleNo = Number(body?.puzzleNo);
   const clue = Number(body?.solvedOnClue);
   const today = puzzleNumber();
-  // allow yesterday too, for players finishing around the 03:14 UTC rollover
+  // allow yesterday too, for players finishing around the 03:14:15 UTC rollover
   if (!Number.isInteger(puzzleNo) || puzzleNo < today - 1 || puzzleNo > today) return json({ error: 'bad puzzle' }, 400);
   if (!Number.isInteger(clue) || clue < 0 || clue > CLUE_COUNT) return json({ error: 'bad clue' }, 400);
   const sql = getSql();
