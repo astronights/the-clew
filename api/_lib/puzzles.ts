@@ -1,5 +1,5 @@
 import type { NeonQueryFunction } from '@neondatabase/serverless';
-import { validateChain, type ChainPuzzle, type PuzzleStatus, type StoredPuzzle } from '../../src/lib/chain';
+import { normalizeChain, validateChain, type ChainPuzzle, type PuzzleStatus, type StoredPuzzle } from '../../src/lib/chain';
 import { dateOfPuzzle } from '../../src/lib/daily';
 
 type Sql = NeonQueryFunction<false, false>;
@@ -13,15 +13,18 @@ interface Row {
   updated_at: string | Date;
 }
 
-const toStored = (r: Row): StoredPuzzle => ({
+const toStored = (r: Row): StoredPuzzle => {
+  const data = normalizeChain(r.data); // older rows kept the answer in a separate field
+  return {
   puzzleNo: Number(r.puzzle_no),
   date: new Date(r.puzzle_date).toISOString().slice(0, 10),
   status: r.status,
-  data: r.data,
-  errors: r.errors ?? [],
+  data,
+  errors: validateChain(data),
   note: r.note,
   updatedAt: new Date(r.updated_at).toISOString(),
-});
+  };
+};
 
 export async function getPuzzle(sql: Sql, puzzleNo: number): Promise<StoredPuzzle | null> {
   const rows = (await sql.query('select * from puzzles where puzzle_no = $1', [puzzleNo])) as Row[];

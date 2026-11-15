@@ -26,8 +26,8 @@ theclew.fyi
 (one emoji per row: ⏭️ next · 🤔 guessed · ❌ wrong rule · ✅ got it; the line changes with the day, e.g.
 "Got it on the first clue 🤯", "Totally tangled today 🙈")
 
-Guesses are checked in code against each row's accepted answers: case, accents, punctuation and a leading "the"
-are ignored, and any script works. Only the free-text rule goes to the AI judge.
+Guesses are checked in code against each row's item: the item itself, or a whole word of a disguised one ("beta"
+for "Beta version"). Case, accents, punctuation and a leading "the" are ignored, and any script works. Only the free-text rule goes to the AI judge.
 
 ## Where puzzles come from
 
@@ -37,24 +37,20 @@ no approved puzzle shows players "Today's clew is still being spun", and the des
 The 41 **built-in puzzles** in [`src/puzzles/library.ts`](src/puzzles/library.ts) are a pick list in the desk: start a
 day from one, edit it if you like, and approve it.
 
-Every puzzle is written as **4 clues + the answer**, which fill the 5 rows:
+Every puzzle is **5 items in order**, one per row; the 5th is the answer:
 
 ```ts
 {
   connection: 'Greek letters in alphabetical order',
-  acceptedPhrasings: ['greek letters', 'greek alphabet', 'greek alphabet in order', ...],
-  clues: ['Alpha male', 'Beta version', 'Gamma ray', 'Delta blues'],
-  clueAnswers: [['Alpha'], ['Beta'], ['Gamma'], ['Delta']],  // what a player types for disguised clues
-  answer: 'Epsilon',
-  acceptedAnswers: ['Epsilon'],
+  clues: ['Alpha male', 'Beta version', 'Gamma ray', 'Delta blues', 'Epsilon'],
   explanation: 'Alpha, beta, gamma, delta… the fifth Greek letter is epsilon.',
   category: 'Language',
   difficulty: 2,
 }
 ```
 
-`npm run validate-puzzles` checks the library: 4 different clues, the answer isn't a clue, accepted answers include
-it, enough rule phrasings, difficulty 1–5, unique ids and connections. A test also makes sure every row accepts its
+`npm run validate-puzzles` checks the library: 5 different items, a rule, explanation and category, difficulty 1–5,
+unique ids and connections. A test also makes sure every row accepts its
 own text and never the row before it.
 
 ## The admin desk (AI puzzles)
@@ -70,8 +66,8 @@ own text and never the row before it.
     **Write AI puzzles for empty days** drafts every empty day in **one Gemini request** (`/api/admin/generate-batch`,
     up to 5 minutes), which matters on free tiers with only a few requests per minute.
   - **The calendar** shows any month; tap a day to see the puzzle that played or will play. Past days are view-only.
-  - **The day editor** has a field for every part (clues and what each accepts as a guess, the answer and its
-    spellings, the rule and its phrasings, explanation, category, difficulty), live checks, and **Save as draft /
+  - **The day editor** has a field for every part (the rule, the 5 items with the answer last, explanation,
+    category, difficulty), live checks, and **Save as draft /
     Approve / Unapprove / Reject**. **Ask AI to change it** sends an instruction ("make clue 1 harder", "use football
     instead") plus the current puzzle to Gemini (`/api/admin/revise`) and saves the result as a draft; **Start over**
     writes a fresh one. An empty day can also **start from a built-in** puzzle.

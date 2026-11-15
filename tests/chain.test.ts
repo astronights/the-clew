@@ -1,15 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { matchesAnswer, validateChain, type ChainPuzzle } from '../src/lib/chain';
+import { normalizeChain, validateChain, type ChainPuzzle } from '../src/lib/chain';
 import { matchesRow, normalizeAnswer } from '../src/lib/answer';
 import { coercePuzzle, extractJson, fillPrompt, loadPromptTemplate, promptFor } from '../api/_lib/generator';
 import { requireAdmin } from '../api/_lib/admin';
 
 const planets: ChainPuzzle = {
   connection: 'Planets in order from the Sun',
-  acceptedPhrasings: ['planets in order', 'planets from the sun', 'order of the planets'],
-  clues: ['Mercury', 'Venus', 'Earth', 'Mars'],
-  answer: 'Jupiter',
-  acceptedAnswers: ['Jupiter'],
+  clues: ['Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter'],
   explanation: 'After Mars comes Jupiter.',
   category: 'Science',
   difficulty: 1,
@@ -23,22 +20,18 @@ describe('answers', () => {
     expect(normalizeAnswer('東京')).toBe('東京');
     expect(normalizeAnswer('Ελλάδα')).toBe('ελλαδα');
   });
-  it('match any accepted spelling', () => {
-    const p = { answer: 'Queen Elizabeth II', acceptedAnswers: ['Queen Elizabeth II', 'Elizabeth II', 'Elizabeth the Second'] };
-    expect(matchesAnswer(p, 'elizabeth ii')).toBe(true);
-    expect(matchesAnswer(p, 'Victoria')).toBe(false);
-    expect(matchesAnswer(p, '   ')).toBe(false);
+  it('match an item or a whole word of it', () => {
+    expect(matchesRow(['Queen Elizabeth II'], 'elizabeth ii', false)).toBe(true);
+    expect(matchesRow(['Queen Elizabeth II'], 'Victoria', false)).toBe(false);
+    expect(matchesRow(['Queen Elizabeth II'], '   ', false)).toBe(false);
   });
 });
 
 describe('puzzle checks', () => {
   it('accept a good puzzle', () => expect(validateChain(planets)).toEqual([]));
   it('catch the usual mistakes', () => {
-    expect(validateChain({ ...planets, clues: ['Mercury', 'Venus', 'Earth'] }).join()).toMatch(/exactly 4 clues/);
-    expect(validateChain({ ...planets, clues: ['Mercury', 'Venus', 'venus', 'Mars'] }).join()).toMatch(/different/);
-    expect(validateChain({ ...planets, acceptedAnswers: ['Saturn'] }).join()).toMatch(/include the answer/);
-    expect(validateChain({ ...planets, answer: 'Mars', acceptedAnswers: ['Mars'] }).join()).toMatch(/already be one of the clues/);
-    expect(validateChain({ ...planets, acceptedPhrasings: ['x'] }).join()).toMatch(/3 accepted phrasings/);
+    expect(validateChain({ ...planets, clues: ['Mercury', 'Venus', 'Earth', 'Mars'] }).join()).toMatch(/exactly 5 items/);
+    expect(validateChain({ ...planets, clues: ['Mercury', 'Venus', 'venus', 'Mars', 'Jupiter'] }).join()).toMatch(/different/);
     expect(validateChain({ ...planets, difficulty: 9 }).join()).toMatch(/difficulty/);
     expect(validateChain(null)).toEqual(['not a puzzle object']);
   });
@@ -58,9 +51,9 @@ describe('generator', () => {
   });
   it('leaves unknown placeholders alone', () => expect(fillPrompt('a {{X}} {{Y}}', { X: '1' })).toBe('a 1 {{Y}}'));
   it('pulls JSON out of a chatty reply and coerces it', () => {
-    const raw = extractJson('Sure! Here it is:\n```json\n' + JSON.stringify({ ...planets, acceptedAnswers: [], difficulty: '2' }) + '\n```');
+    const raw = extractJson('Sure! Here it is:\n```json\n' + JSON.stringify({ ...planets, difficulty: '2' }) + '\n```');
     const p = coercePuzzle(raw);
-    expect(p.acceptedAnswers).toEqual(['Jupiter']);
+    expect(p.clues).toHaveLength(5);
     expect(p.difficulty).toBe(2);
     expect(validateChain(p)).toEqual([]);
     expect(() => extractJson('no json here')).toThrow();
@@ -93,9 +86,12 @@ describe('guessing a disguised row', () => {
     expect(matchesRow(['Beta version'], 'bet', false)).toBe(false);
     expect(matchesRow(['Delta blues'], 'Gamma', false)).toBe(false);
   });
-  it('puzzle check requires 4 lists when clueAnswers is given', () => {
-    expect(validateChain({ ...planets, clueAnswers: [['Mercury']] }).join()).toMatch(/clueAnswers/);
-    expect(validateChain({ ...planets, clueAnswers: [['Mercury'], ['Venus'], ['Earth'], ['Mars']] })).toEqual([]);
+  it('older puzzles with a separate answer are folded into 5 items', () => {
+    const old = { connection: 'x', acceptedPhrasings: ['a'], clues: ['Mercury', 'Venus', 'Earth', 'Mars'], clueAnswers: [], answer: 'Jupiter', acceptedAnswers: ['Jupiter'], explanation: 'e', category: 'c', difficulty: 1 };
+    const p = normalizeChain(old);
+    expect(p.clues).toEqual(['Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter']);
+    expect(Object.keys(p)).not.toContain('answer');
+    expect(validateChain(p)).toEqual([]);
   });
 });
 
@@ -105,7 +101,7 @@ describe('AI revision prompt', () => {
   it('keeps the house rules and includes the instruction and current puzzle', () => {
     const t = revisePromptFor(48, planets, 'make clue 1 harder', ['- Greek letters (Language)']);
     expect(t).toContain('make clue 1 harder');
-    expect(t).toContain('"answer": "Jupiter"');
+    expect(t).toContain('"Jupiter"');
     expect(t).toContain('Greek letters');
     expect(t).toMatch(/Apply \*\*only\*\* what they ask for/);
     expect(t).not.toMatch(/\{\{\w+\}\}/);

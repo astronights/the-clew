@@ -44,10 +44,7 @@ const noForDate = (y: number, m: number, d: number) => puzzleNumber(Date.UTC(y, 
 function emptyPuzzle(no: number): ChainPuzzle {
   return {
     connection: '',
-    acceptedPhrasings: [],
     clues: Array(CHAIN_CLUES).fill(''),
-    answer: '',
-    acceptedAnswers: [],
     explanation: '',
     category: '',
     difficulty: WEEKDAY_DIFFICULTY[dateOfPuzzle(no).getUTCDay()],
@@ -61,12 +58,6 @@ function fromLibrary(id: string): ChainPuzzle | null {
   const { id: _id, ...p } = lib;
   return structuredClone(p);
 }
-
-const splitList = (s: string) =>
-  s
-    .split(/[\n,]/)
-    .map((x) => x.trim())
-    .filter(Boolean);
 
 type StatusKey = 'approved' | 'draft' | 'rejected' | 'empty';
 const statusOf = (stored?: StoredPuzzle): StatusKey => (stored ? stored.status : 'empty');
@@ -359,11 +350,6 @@ function DayEditor({ no, today, stored, token, onClose, onChanged }: EditorProps
     setDirty(true);
   };
   const setClue = (i: number, value: string) => set({ clues: draft.clues.map((c, j) => (j === i ? value : c)) });
-  const setClueAnswers = (i: number, value: string) => {
-    const all = Array.from({ length: CHAIN_CLUES }, (_, j) => draft.clueAnswers?.[j] ?? [draft.clues[j]]);
-    all[i] = splitList(value);
-    set({ clueAnswers: all });
-  };
 
   const run = async (label: string, fn: () => Promise<unknown>) => {
     setBusy(label);
@@ -379,7 +365,7 @@ function DayEditor({ no, today, stored, token, onClose, onChanged }: EditorProps
   };
   const post = (body: object) => call(token, '/api/admin/puzzles', { puzzleNo: no, ...body });
 
-  const rows = [...draft.clues, draft.answer];
+  const rows = draft.clues;
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -492,43 +478,12 @@ function DayEditor({ no, today, stored, token, onClose, onChanged }: EditorProps
                 <input className="input" value={draft.connection} onChange={(e) => set({ connection: e.target.value })} />
               </Field>
               {draft.clues.map((c, i) => (
-                <div key={i} className="clue-edit">
-                  <Field label={`Clue ${i + 1}`}>
-                    <input className="input" value={c} onChange={(e) => setClue(i, e.target.value)} />
-                  </Field>
-                  <Field label="also accepts">
-                    <input
-                      className="input"
-                      value={(draft.clueAnswers?.[i] ?? []).filter((x) => x !== c).join(', ')}
-                      placeholder="comma separated"
-                      onChange={(e) => setClueAnswers(i, `${c}, ${e.target.value}`)}
-                    />
-                  </Field>
-                </div>
+                <Field key={i} label={i === CHAIN_CLUES - 1 ? `Item ${i + 1} · the answer` : `Item ${i + 1}`}>
+                  <input className="input" value={c} onChange={(e) => setClue(i, e.target.value)} />
+                </Field>
               ))}
-              <div className="clue-edit">
-                <Field label="Answer (clue 5)">
-                  <input className="input" value={draft.answer} onChange={(e) => set({ answer: e.target.value })} />
-                </Field>
-                <Field label="also accepts">
-                  <input
-                    className="input"
-                    value={draft.acceptedAnswers.filter((a) => a !== draft.answer).join(', ')}
-                    placeholder="comma separated"
-                    onChange={(e) => set({ acceptedAnswers: [draft.answer, ...splitList(e.target.value)] })}
-                  />
-                </Field>
-              </div>
               <Field label="Explanation (shown after the game)">
                 <textarea className="input admin-textarea" rows={2} value={draft.explanation} onChange={(e) => set({ explanation: e.target.value })} />
-              </Field>
-              <Field label="Ways players might name the rule (one per line)">
-                <textarea
-                  className="input admin-textarea"
-                  rows={5}
-                  value={draft.acceptedPhrasings.join('\n')}
-                  onChange={(e) => set({ acceptedPhrasings: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) })}
-                />
               </Field>
               <div className="clue-edit">
                 <Field label="Category">

@@ -25,7 +25,7 @@ Target difficulty: **{{DIFFICULTY}} out of 5**.
 The puzzle is a **sequence**, in the spirit of the "Sequences" round of the BBC quiz *Only Connect*.
 
 - There is a hidden progression: things that come in a fixed, well-known order.
-- The board has **5 rows**: your 4 clues, then the answer as the 5th row.
+- The board has **5 rows**: 5 items of the sequence, in order. The 5th is the answer.
 - The player sees **row 1** first. Each time they guess what comes next, the next row opens and shows whether
   their guess was right. So players will try to type **the item in each row** before it opens.
 - They score by naming **the rule** (what the sequence is) with as few rows open as possible.
@@ -42,24 +42,24 @@ In *Only Connect* the classic sequences are things like:
 
 The best ones **hide** the sequence: each clue contains or points to one item of the sequence, but the pattern is
 not obvious at first. For example, Greek letters clued as `Alpha male`, `Beta version`, `Gamma ray`, `Delta blues`,
-so the answer is `Epsilon`. Only use disguises that are unambiguous and true, and keep them consistent:
-if clue 1 is a phrase containing the item, all four clues should work the same way.
+then `Epsilon` as the 5th. Only use disguises that are unambiguous and true, and keep them consistent:
+if item 1 is a phrase containing the item, items 1–4 should all work the same way. The 5th (the answer) may be
+plain or disguised the same way.
 
 ## What makes a great puzzle
 
 1. **One unambiguous 5th.** Once a player has spotted the rule, there must be exactly one correct next item.
-   If there are spelling variants or short forms, list them all in `acceptedAnswers`.
-2. **The 4 clues are items 1–4 of the sequence, in order**, and the answer is item 5. You may start the sequence
+2. **The 5 items are consecutive items of the sequence, in order.** You may start the sequence
    anywhere (e.g. Mercury, Venus, Earth, Mars → Jupiter, or Thursday, Friday, Saturday, Sunday → Monday), and you may
    step through it (every other item, only the even ones…) as long as the step is constant and fair.
-3. **Vague to revealing.** Clue 1 should be solvable by only the sharpest players. By clue 4 most players should get it.
-   If a clue alone gives the game away, put it later.
+3. **Vague to revealing.** Item 1 should be solvable by only the sharpest players. By item 4 most players should get it.
+   If an item alone gives the game away, put it later.
 4. **Fair and global.** The puzzle is played worldwide. Prefer knowledge that a curious person anywhere would have:
    science, maths, geography, world history, language, big films, books and sport. Avoid very local TV, politics or
    slang. Never require specialist knowledge for difficulty 1–2.
 5. **True.** Every fact must be correct and verifiable. If you are not certain, choose a different sequence. Use
    Google Search to check anything you are not 100% sure about.
-6. **Short clues.** Each clue at most 40 characters ideally (60 max). No clue may contain the answer.
+6. **Short items.** Each item at most 40 characters ideally (60 max), and all five different.
 7. **Kind.** No violence, tragedies, disasters, deaths, religion as a joke, politics that divides, or anything
    that could upset someone. Nothing adult.
 8. **Fresh.** Do not repeat or closely echo anything in the "avoid" list below.
@@ -94,45 +94,26 @@ Reply with **only** a JSON object, no markdown fences, no commentary, in exactly
 
 {
   "connection": "Planets in order from the Sun",
-  "acceptedPhrasings": [
-    "planets in order",
-    "planets from the sun",
-    "order of the planets",
-    "planets by distance from the sun",
-    "the solar system in order",
-    "planets going outwards"
-  ],
-  "clues": ["Mercury", "Venus", "Earth", "Mars"],
-  "clueAnswers": [["Mercury"], ["Venus"], ["Earth"], ["Mars"]],
-  "answer": "Jupiter",
-  "acceptedAnswers": ["Jupiter"],
+  "clues": ["Freddie Mercury", "Venus flytrap", "Earth Day", "Mars bar", "Jupiter"],
   "explanation": "The planets in order from the Sun: after Mars comes Jupiter.",
   "category": "Science",
-  "difficulty": 1,
+  "difficulty": 2,
   "topical": { "used": false, "note": "" }
 }
 
 Field rules:
 
 - `connection`: the rule as a short, plain sentence a player would recognise (max 120 characters). Do not mention the answer.
-- `acceptedPhrasings`: 6–10 different ways a player might type the rule, from formal to casual, short to long.
-  These are used for instant matching, so include the obvious short forms.
-- `clues`: exactly 4 strings, items 1–4 of the sequence in order (plain or disguised, consistently).
-- `clueAnswers`: for each of the 4 clues, what a player would type as that item. For plain clues just repeat the
-  clue; for disguised clues give the underlying item and its common spellings, e.g. clue `"Beta version"` →
-  `["Beta"]`, clue `"Apollo 8"` → `["Apollo 8", "8"]`.
-- `answer`: item 5. `acceptedAnswers`: every acceptable way of writing it, including `answer` itself
-  (e.g. `["Jupiter"]`, or `["Queen Elizabeth II", "Elizabeth II", "Elizabeth"]`).
-- `explanation`: 1–2 sentences shown after the game, explaining the sequence and why the answer comes next.
+- `clues`: exactly 5 strings, the items of the sequence in order (plain or disguised, consistently). The 5th is the answer.
+- `explanation`: 1–2 sentences shown after the game, explaining the sequence and why the 5th comes next.
 - `category`: one word or two, e.g. Science, Geography, History, Language, Film, Sport, Music, Maths.
 - `difficulty`: your honest rating 1–5 (aim for {{DIFFICULTY}}).
 - `topical.used`: true only if you used a news hook; then say in `topical.note` what it is, in one line.
 
 ## Before you answer, check
 
-- [ ] There is exactly one fair 5th item, and every way of writing it is in `acceptedAnswers`.
-- [ ] `clueAnswers` has 4 lists, each with what a player would type for that row.
-- [ ] Clues are in the right order and every fact is true (verify with search if unsure).
-- [ ] No clue contains or gives away the answer, and clue 1 is the hardest.
+- [ ] There are exactly 5 items, in the right order, and exactly one fair 5th.
+- [ ] Every fact is true (verify with search if unsure).
+- [ ] Item 1 is the hardest and no early item gives the game away.
 - [ ] It is not on the avoid list and not offensive or upsetting.
 - [ ] The JSON is valid and has every field.

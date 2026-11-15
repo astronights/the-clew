@@ -15,7 +15,7 @@ for (const p of LIBRARY) {
   ids.add(p.id);
   connections.add(c);
   if (errors.length) failed++;
-  console.log(`${errors.length ? '✗' : '✓'} ${p.id.padEnd(24)} ${p.clues.join(' → ')} → ${p.answer}`);
+  console.log(`${errors.length ? '✗' : '✓'} ${p.id.padEnd(24)} ${p.clues.join(' → ')}`);
   for (const e of errors) console.log(`    - ${e}`);
 }
 console.log(`\n${LIBRARY.length} puzzles, ${failed} with problems.`);

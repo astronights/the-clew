@@ -18,9 +18,8 @@ description is right.
 
 ## Your task
 
-You will be given today's puzzle (the five items in order, the official rule, an explanation, and some
-phrasings already known to be correct) and one player's guess. Decide whether the guess correctly names
-the sequence.
+You will be given today's puzzle (the five items in order, the official rule and an explanation) and one
+player's guess. Decide whether the guess correctly names the sequence.
 
 Answer with exactly one verdict:
 

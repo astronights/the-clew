@@ -34,9 +34,7 @@ export function buildSystemPrompt(p: Puzzle): string {
 
 The sequence, in order: ${p.rows.join(' → ')}
 The official rule: ${p.connection}
-Explanation: ${p.explanation}
-Phrasings already known to be correct:
-${p.acceptedPhrasings.map((a) => `- ${a}`).join('\n')}`;
+Explanation: ${p.explanation}`;
 }
 
 /** Strip delimiter look-alikes and control characters from the guess. */
@@ -82,8 +80,6 @@ export function decisionInput(p: Puzzle, guess: string): string {
 The sequence, in order: ${p.rows.join(' → ')}
 The official rule: ${p.connection}
 Explanation: ${p.explanation}
-Phrasings already known to be correct:
-${p.acceptedPhrasings.map((a) => `- ${a}`).join('\n')}
 
 ## The player's guess
 

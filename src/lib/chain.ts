@@ -2,26 +2,14 @@ import { normalizeAnswer } from './answer';
 
 /**
  * An AI-written, admin-approved "what comes next" puzzle in the style of
- * Only Connect's Sequences round: four items in order, the player names the
- * fifth and the rule. Pass/fail of the player's 5th is decided by code:
- * it must match one of `acceptedAnswers` after normalisation.
+ * Only Connect's Sequences round: five items in a fixed order. Players see them one by one,
+ * guess what comes next, and score by naming the rule.
  */
 export interface ChainPuzzle {
   /** Player-facing statement of the rule, e.g. "Greek letters in alphabetical order". */
   connection: string;
-  /** 6–10 ways a player might phrase the rule; used for instant local matching. */
-  acceptedPhrasings: string[];
-  /** Exactly CHAIN_CLUES items, in order, vaguest first (the answer is the 5th row). */
+  /** Exactly CHAIN_CLUES items, in order, vaguest first. The last one is the answer. */
   clues: string[];
-  /**
-   * Optional: for each clue, what a player would type as that item when the clue is disguised,
-   * e.g. clue "Beta version" → ["Beta"]. Used to mark "guess what comes next" right or wrong.
-   */
-  clueAnswers?: string[][];
-  /** The 5th item. */
-  answer: string;
-  /** Every spelling of the 5th we accept (must include `answer`). */
-  acceptedAnswers: string[];
   /** Shown after the game: why the 5th comes next. */
   explanation: string;
   category: string;
@@ -31,8 +19,30 @@ export interface ChainPuzzle {
   sources?: string[];
 }
 
-/** A sequence puzzle is written as 4 clues + the answer, which together fill the 5 rows. */
-export const CHAIN_CLUES = 4;
+/** A sequence puzzle is 5 items, one per row; the 5th is the answer. */
+export const CHAIN_CLUES = 5;
+
+/**
+ * Bring a stored or model-written object into the current shape. Older puzzles kept the 5th item
+ * in a separate `answer` field (with 4 clues) plus accepted phrasings/answers; those are folded in.
+ */
+export function normalizeChain(raw: unknown): ChainPuzzle {
+  const o = (raw ?? {}) as Record<string, unknown>;
+  const strs = (v: unknown) => (Array.isArray(v) ? v.map((x) => String(x).trim()).filter(Boolean) : []);
+  let clues = strs(o.clues);
+  const answer = typeof o.answer === 'string' ? o.answer.trim() : '';
+  if (answer && clues.length === CHAIN_CLUES - 1) clues = [...clues, answer];
+  const t = o.topical as Record<string, unknown> | undefined;
+  return {
+    connection: String(o.connection ?? '').trim(),
+    clues,
+    explanation: String(o.explanation ?? '').trim(),
+    category: String(o.category ?? '').trim(),
+    difficulty: Math.round(Number(o.difficulty)) || 0,
+    ...(t && typeof t === 'object' ? { topical: { used: t.used === true, note: String(t.note ?? '').trim() } } : {}),
+    ...(Array.isArray(o.sources) ? { sources: strs(o.sources) } : {}),
+  };
+}
 
 export type PuzzleStatus = 'draft' | 'approved' | 'rejected';
 
@@ -51,11 +61,6 @@ export const WEEKDAY_DIFFICULTY = [3, 1, 2, 2, 3, 4, 5];
 
 export const chainRuleId = (puzzleNo: number) => `chain:${puzzleNo}`;
 
-export function matchesAnswer(p: Pick<ChainPuzzle, 'answer' | 'acceptedAnswers'>, guess: string): boolean {
-  const g = normalizeAnswer(guess);
-  return !!g && [p.answer, ...p.acceptedAnswers].some((a) => normalizeAnswer(a) === g);
-}
-
 /** Deterministic checks a puzzle must pass before it can be approved. */
 export function validateChain(p: Partial<ChainPuzzle> | null | undefined): string[] {
   const e: string[] = [];
@@ -63,25 +68,13 @@ export function validateChain(p: Partial<ChainPuzzle> | null | undefined): strin
   const str = (v: unknown) => typeof v === 'string' && v.trim().length > 0;
   if (!str(p.connection)) e.push('connection is missing');
   else if (p.connection!.length > 120) e.push('connection is longer than 120 characters');
-  if (!Array.isArray(p.clues) || p.clues.length !== CHAIN_CLUES) e.push(`needs exactly ${CHAIN_CLUES} clues`);
+  if (!Array.isArray(p.clues) || p.clues.length !== CHAIN_CLUES) e.push(`needs exactly ${CHAIN_CLUES} items (the last is the answer)`);
   else {
-    if (!p.clues.every(str)) e.push('every clue must be non-empty text');
-    if (p.clues.some((c) => String(c).length > 60)) e.push('clues must be 60 characters or fewer');
+    if (!p.clues.every(str)) e.push('every item must be non-empty text');
+    if (p.clues.some((c) => String(c).length > 60)) e.push('items must be 60 characters or fewer');
     const keys = p.clues.map((c) => normalizeAnswer(String(c)));
-    if (new Set(keys).size !== keys.length) e.push('clues must all be different');
+    if (new Set(keys).size !== keys.length) e.push('items must all be different');
   }
-  if (p.clueAnswers !== undefined) {
-    if (!Array.isArray(p.clueAnswers) || p.clueAnswers.length !== CHAIN_CLUES || !p.clueAnswers.every((a) => Array.isArray(a) && a.every(str)))
-      e.push(`clueAnswers must be ${CHAIN_CLUES} lists of text`);
-  }
-  if (!str(p.answer)) e.push('answer is missing');
-  else if (p.answer!.length > 60) e.push('answer must be 60 characters or fewer');
-  if (!Array.isArray(p.acceptedAnswers) || !p.acceptedAnswers.every(str)) e.push('acceptedAnswers must be a list of text');
-  else if (str(p.answer) && !p.acceptedAnswers.some((a) => normalizeAnswer(a) === normalizeAnswer(p.answer!)))
-    e.push('acceptedAnswers must include the answer');
-  if (str(p.answer) && Array.isArray(p.clues) && p.clues.some((c) => matchesAnswer({ answer: p.answer!, acceptedAnswers: p.acceptedAnswers ?? [] }, String(c))))
-    e.push('the answer must not already be one of the clues');
-  if (!Array.isArray(p.acceptedPhrasings) || p.acceptedPhrasings.filter(str).length < 3) e.push('needs at least 3 accepted phrasings');
   if (!str(p.explanation)) e.push('explanation is missing');
   if (!str(p.category)) e.push('category is missing');
   if (!Number.isInteger(p.difficulty) || p.difficulty! < 1 || p.difficulty! > 5) e.push('difficulty must be 1–5');

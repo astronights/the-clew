@@ -1,4 +1,4 @@
-/** Fuzzy matching of free-text rule guesses against a rule's accepted phrasings. */
+/** Text normalisation for rule guesses (the judge log keys on it) and a fuzzy phrase matcher. */
 
 const NUMBER_WORDS: Record<string, number> = {
   zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,

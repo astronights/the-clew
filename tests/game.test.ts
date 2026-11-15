@@ -5,11 +5,7 @@ import type { ChainPuzzle } from '../src/lib/chain';
 
 const planets: ChainPuzzle = {
   connection: 'Planets in order from the Sun',
-  acceptedPhrasings: ['planets in order', 'planets from the sun', 'order of the planets'],
-  clues: ['Freddie Mercury', 'Venus flytrap', 'Earth Day', 'Mars bar'],
-  clueAnswers: [['Mercury'], ['Venus'], ['Earth'], ['Mars']],
-  answer: 'Jupiter',
-  acceptedAnswers: ['Jupiter', 'Planet Jupiter'],
+  clues: ['Freddie Mercury', 'Venus flytrap', 'Earth Day', 'Mars bar', 'Planet Jupiter'],
   explanation: '',
   category: 'Science',
   difficulty: 1,
@@ -17,15 +13,16 @@ const planets: ChainPuzzle = {
 const p = fromChain('lib:test', planets);
 
 describe('puzzle rows', () => {
-  it('are the 4 clues plus the answer', () => {
+  it('are the 5 items, the last being the answer', () => {
     expect(ROWS).toBe(5);
-    expect(p.rows).toEqual(['Freddie Mercury', 'Venus flytrap', 'Earth Day', 'Mars bar', 'Jupiter']);
+    expect(p.rows).toEqual(['Freddie Mercury', 'Venus flytrap', 'Earth Day', 'Mars bar', 'Planet Jupiter']);
   });
-  it('accept the underlying item for disguised clues, and every spelling of the answer', () => {
+  it('accept the item itself or a whole word of a disguised one', () => {
     expect(guessIsRight(p, 1, 'venus')).toBe(true);
     expect(guessIsRight(p, 1, 'Venus flytrap')).toBe(true);
     expect(guessIsRight(p, 2, 'Mars')).toBe(false);
     expect(guessIsRight(p, 4, 'planet jupiter')).toBe(true);
+    expect(guessIsRight(p, 4, 'Jupiter')).toBe(true);
     expect(guessIsRight(p, 4, 'Saturn')).toBe(false);
   });
 });

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { validateChain, WEEKDAY_DIFFICULTY, type ChainPuzzle } from '../../src/lib/chain';
+import { normalizeChain, validateChain, WEEKDAY_DIFFICULTY, type ChainPuzzle } from '../../src/lib/chain';
 import { dateOfPuzzle } from '../../src/lib/daily';
 import { describeGeminiError, sleep } from './geminiErrors';
 import { generationSettings } from './modelConfig';
@@ -40,8 +40,7 @@ export function revisePromptFor(puzzleNo: number, current: ChainPuzzle, instruct
 ## Revision task
 
 You already wrote the puzzle below. The editor wants a change. Apply **only** what they ask for and keep
-everything else as it is, unless the change forces other fields to change (e.g. new clues need new
-clueAnswers, a new answer needs new acceptedAnswers and explanation). Keep every rule above.
+everything else as it is, unless the change forces other fields to change (e.g. a new 5th item needs a new explanation). Keep every rule above.
 
 Editor's instruction:
 ${instruction.trim().slice(0, 1000)}
@@ -62,23 +61,8 @@ export function extractJson(text: string): unknown {
 
 /** Coerce the model's object into a ChainPuzzle shape (validation happens separately). */
 export function coercePuzzle(raw: unknown): ChainPuzzle {
-  const o = (raw ?? {}) as Record<string, unknown>;
-  const strs = (v: unknown) => (Array.isArray(v) ? v.map((x) => String(x).trim()).filter(Boolean) : []);
-  const topical = (o.topical ?? {}) as Record<string, unknown>;
-  const answer = String(o.answer ?? '').trim();
-  const accepted = strs(o.acceptedAnswers);
-  return {
-    connection: String(o.connection ?? '').trim(),
-    acceptedPhrasings: strs(o.acceptedPhrasings).slice(0, 12),
-    clues: strs(o.clues),
-    ...(Array.isArray(o.clueAnswers) ? { clueAnswers: (o.clueAnswers as unknown[]).map(strs) } : {}),
-    answer,
-    acceptedAnswers: answer && !accepted.includes(answer) ? [answer, ...accepted] : accepted,
-    explanation: String(o.explanation ?? '').trim(),
-    category: String(o.category ?? '').trim(),
-    difficulty: Math.round(Number(o.difficulty)) || 0,
-    topical: { used: topical.used === true, note: String(topical.note ?? '').trim() },
-  };
+  const p = normalizeChain(raw);
+  return { ...p, topical: p.topical ?? { used: false, note: '' } };
 }
 
 export interface Generated {
