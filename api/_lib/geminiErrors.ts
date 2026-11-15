@@ -40,11 +40,11 @@ export function describeGeminiError(status: number, bodyText: string, model: str
     const what = search ? 'Google Search grounding' : model;
     let msg: string;
     if (window === 'day')
-      msg = `Gemini's daily ${freeTier ? 'free-tier ' : ''}limit for ${what} is used up. It resets tomorrow (Pacific time), or enable billing in Google AI Studio.`;
+      msg = `Gemini's daily ${freeTier ? 'free-tier ' : ''}limit for ${what} is used up. It resets at midnight Pacific time (08:00 UTC in winter, 07:00 in summer), or enable billing in Google AI Studio.`;
     else if (window === 'minute')
       msg = `Gemini's per-minute limit for ${what} was hit. Wait ${retryAfter ?? 60}s and try again.`;
     else
-      msg = `Gemini quota exceeded for ${what}${retryAfter ? ` (retry in ${retryAfter}s)` : ''}. If this keeps happening, this model may have no free tier on your key: try GEMINI_MODEL=gemini-2.5-flash or enable billing.`;
+      msg = `Gemini quota exceeded for ${what}${retryAfter ? ` (retry in ${retryAfter}s)` : ''}. If this keeps happening, this model may have no free tier on your key: switch model or enable billing.${quotaIds.trim() ? ` (Google: ${quotaIds.trim().slice(0, 120)})` : ''}`;
     return new GeminiError(msg, status, retryAfter, window);
   }
   if (status === 404 || (status === 400 && /model/i.test(body.error?.message ?? '')))
