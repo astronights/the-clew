@@ -1,17 +1,25 @@
 const DAY = 86_400_000;
-/** Puzzle #1 was 2026-09-30 (UTC). */
-export const EPOCH_UTC = Date.UTC(2026, 8, 30);
+/** Every player gets the next puzzle at the same instant: 03:14 UTC (π o'clock). */
+export const ROLLOVER_UTC = { hour: 3, minute: 14 };
+/** Puzzle #1 went live 2026-09-30 at 03:14 UTC. */
+export const EPOCH_UTC = Date.UTC(2026, 8, 30, ROLLOVER_UTC.hour, ROLLOVER_UTC.minute);
 
 export function puzzleNumber(now: Date | number = Date.now()): number {
   const t = typeof now === 'number' ? now : now.getTime();
   return Math.floor((t - EPOCH_UTC) / DAY) + 1;
 }
 
+/** The moment puzzle n goes live (its UTC calendar date is the puzzle's date). */
 export function dateOfPuzzle(n: number): Date {
   return new Date(EPOCH_UTC + (n - 1) * DAY);
 }
 
-/** ms until the next 00:00 UTC. */
+/** ms until the next 03:14 UTC. */
 export function msUntilNextPuzzle(now = Date.now()): number {
-  return DAY - ((now - EPOCH_UTC) % DAY);
+  return DAY - ((((now - EPOCH_UTC) % DAY) + DAY) % DAY);
+}
+
+/** The daily rollover in the viewer's own clock, e.g. "8:44 am". */
+export function rolloverLocalTime(locale?: string): string {
+  return new Date(EPOCH_UTC).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
 }

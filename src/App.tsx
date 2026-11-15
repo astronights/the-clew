@@ -44,7 +44,7 @@ export function App() {
     save('clew:theme', theme);
   }, [theme]);
 
-  // roll over to the new puzzle at 00:00 UTC if the tab stays open
+  // roll over to the new puzzle at 03:14 UTC if the tab stays open
   useEffect(() => {
     const id = setInterval(() => setToday(puzzleNumber()), 30_000);
     return () => clearInterval(id);

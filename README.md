@@ -1,7 +1,7 @@
 # 🧶 The Clew
 
 A mobile-first daily "what comes next" puzzle, in the spirit of the Sequences round of *Only Connect*.
-One sequence a day, the same for everyone (new puzzle at 00:00 UTC).
+One sequence a day, the same for everyone (new puzzle at 03:14 UTC for everyone).
 
 ## How it plays
 
