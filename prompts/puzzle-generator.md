@@ -40,20 +40,39 @@ In *Only Connect* the classic sequences are things like:
 - Pantone, paper sizes (A4 → A3), tube/metro stations along a line, keys along a keyboard row, the Fibonacci numbers,
 - wedding anniversary gifts, ages of man, stages of grief, the Beaufort scale, ranks in an army.
 
-The best ones **hide** the sequence: each clue contains or points to one item of the sequence, but the pattern is
-not obvious at first. For example, Greek letters clued as `Alpha male`, `Beta version`, `Gamma ray`, `Delta blues`,
-then `Epsilon` as the 5th. Only use disguises that are unambiguous and true, and keep them consistent:
-if item 1 is a phrase containing the item, items 1–4 should all work the same way. The 5th (the answer) may be
-plain or disguised the same way.
+## Never write the plain list
+
+**Items 1–4 must never be the sequence written out plainly.** "Mercury, Venus, Earth, Mars" is solved in one
+glance and makes a dull puzzle. Every one of items 1–4 must be **disguised**, so the player has to work out
+*what the item is* before they can see the pattern. Ways to disguise, from gentle to tough:
+
+- **Hide it in a phrase or name:** Greek letters as `Alpha male`, `Beta version`, `Gamma ray`, `Delta blues`.
+  Planets as `Freddie Mercury`, `Venus flytrap`, `Earth Day`, `Mars bar`.
+- **Use a symbol, code, abbreviation or number for it:** elements as `H`, `He`, `Li`, `Be`; months as `31`, `28`,
+  `31`, `30` (their days); keyboard keys; Roman numerals; flags or chess notation spelled out.
+- **Describe it sideways:** `The red one`, `The one with rings`; `Lightest gas`; a capital city instead of a
+  country; a famous person who shares the item's name.
+- **Translate it** (French, Spanish, Latin, NATO alphabet…) or show it in another system.
+- **Start somewhere unexpected** in the sequence, or **step** through it (every other item).
+- **Mislead fairly:** pick disguises that first suggest a different connection (`Freddie Mercury` points at Queen
+  or rock music before it points at planets).
+
+The test for item 1: **on its own it should suggest at least two or three different sequences**, and most
+players should not be able to name the rule from it. Item 2 narrows it, item 3 should make the sharp players
+smile, item 4 should get most players there. Only use disguises that are unambiguous and true, and keep them
+consistent: if item 1 hides the item in a phrase, items 2–4 do the same.
+
+The **5th item is the answer**, shown when the game ends. Write it plainly (`Jupiter`, `Epsilon`) so the player
+instantly sees what it was, unless the disguise is the whole joke, in which case keep it consistent.
 
 ## What makes a great puzzle
 
 1. **One unambiguous 5th.** Once a player has spotted the rule, there must be exactly one correct next item.
 2. **The 5 items are consecutive items of the sequence, in order.** You may start the sequence
-   anywhere (e.g. Mercury, Venus, Earth, Mars → Jupiter, or Thursday, Friday, Saturday, Sunday → Monday), and you may
+   anywhere (e.g. from Earth to Saturn, or from Thursday to Monday), and you may
    step through it (every other item, only the even ones…) as long as the step is constant and fair.
-3. **Vague to revealing.** Item 1 should be solvable by only the sharpest players. By item 4 most players should get it.
-   If an item alone gives the game away, put it later.
+3. **Vague to revealing.** Item 1 should be solvable by only the sharpest players; most players should need items 3
+   or 4. If an item alone gives the game away, disguise it more or put it later.
 4. **Fair and global.** The puzzle is played worldwide. Prefer knowledge that a curious person anywhere would have:
    science, maths, geography, world history, language, big films, books and sport. Avoid very local TV, politics or
    slang. Never require specialist knowledge for difficulty 1–2.
@@ -74,10 +93,12 @@ Never use news about tragedies, conflicts, crime, elections or individuals' priv
 
 ## Difficulty guide
 
-- **1** — a sequence everyone knows, lightly disguised (days of the week, planets, rainbow colours).
-- **2** — well known, a bit more disguise (NATO alphabet, Harry Potter books, Olympic host cities).
-- **3** — general knowledge, clever presentation (elements, monarchs, Bond actors, paper sizes).
-- **4** — needs real thought; the first clues are misleading in a fair way.
+Every level is disguised; difficulty comes from how well-known the sequence is and how deep the disguise goes.
+
+- **1** — a sequence everyone knows, with a playful disguise (planets as `Mars bar`…, days hidden in phrases).
+- **2** — well known, a sideways disguise (NATO alphabet, Harry Potter books by a detail, Olympic hosts by landmark).
+- **3** — general knowledge, clever presentation (elements by symbol, monarchs by nickname, Bond actors by film).
+- **4** — needs real thought; items 1–2 mislead fairly towards a different connection.
 - **5** — fiendish but fair: a quiz enthusiast will groan "of course!" when told the answer.
 
 ## Avoid (recent and upcoming puzzles)
@@ -114,6 +135,7 @@ Field rules:
 
 - [ ] There are exactly 5 items, in the right order, and exactly one fair 5th.
 - [ ] Every fact is true (verify with search if unsure).
-- [ ] Item 1 is the hardest and no early item gives the game away.
+- [ ] Items 1–4 are disguised (not the plain list), item 1 alone fits several sequences, and no early item gives
+      the game away.
 - [ ] It is not on the avoid list and not offensive or upsetting.
 - [ ] The JSON is valid and has every field.
