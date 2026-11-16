@@ -78,7 +78,7 @@ instantly sees what it was, unless the disguise is the whole joke, in which case
    slang. Never require specialist knowledge for difficulty 1–2.
 5. **True.** Every fact must be correct and verifiable. If you are not certain, choose a different sequence. Use
    Google Search to check anything you are not 100% sure about.
-6. **Short items.** Each item at most 40 characters ideally (60 max), and all five different.
+6. **Short items.** Each item at most 40 characters ideally (60 max).
 7. **Kind.** No violence, tragedies, disasters, deaths, religion as a joke, politics that divides, or anything
    that could upset someone. Nothing adult.
 8. **Fresh.** Do not repeat or closely echo anything in the "avoid" list below.

@@ -31,7 +31,6 @@ describe('puzzle checks', () => {
   it('accept a good puzzle', () => expect(validateChain(planets)).toEqual([]));
   it('catch the usual mistakes', () => {
     expect(validateChain({ ...planets, clues: ['Mercury', 'Venus', 'Earth', 'Mars'] }).join()).toMatch(/exactly 5 items/);
-    expect(validateChain({ ...planets, clues: ['Mercury', 'Venus', 'venus', 'Mars', 'Jupiter'] }).join()).toMatch(/different/);
     expect(validateChain({ ...planets, difficulty: 9 }).join()).toMatch(/difficulty/);
     expect(validateChain(null)).toEqual(['not a puzzle object']);
   });

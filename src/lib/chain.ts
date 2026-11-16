@@ -1,4 +1,3 @@
-import { normalizeAnswer } from './answer';
 
 /**
  * An AI-written, admin-approved "what comes next" puzzle in the style of
@@ -72,8 +71,6 @@ export function validateChain(p: Partial<ChainPuzzle> | null | undefined): strin
   else {
     if (!p.clues.every(str)) e.push('every item must be non-empty text');
     if (p.clues.some((c) => String(c).length > 60)) e.push('items must be 60 characters or fewer');
-    const keys = p.clues.map((c) => normalizeAnswer(String(c)));
-    if (new Set(keys).size !== keys.length) e.push('items must all be different');
   }
   if (!str(p.explanation)) e.push('explanation is missing');
   if (!str(p.category)) e.push('category is missing');

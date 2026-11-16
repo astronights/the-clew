@@ -49,7 +49,7 @@ Every puzzle is **5 items in order**, one per row; the 5th is the answer:
 }
 ```
 
-`npm run validate-puzzles` checks the library: 5 different items, a rule, explanation and category, difficulty 1–5,
+`npm run validate-puzzles` checks the library: 5 items, a rule, explanation and category, difficulty 1–5,
 unique ids and connections. A test also makes sure every row accepts its
 own text and never the row before it.
 
