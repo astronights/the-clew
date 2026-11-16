@@ -9,13 +9,14 @@ export interface JudgeResponse {
 
 export class JudgeUnavailable extends Error {}
 
-export async function judgeRemote(ruleId: string, guess: string): Promise<JudgeResponse> {
+/** `row` = how many rows were open when the guess was made (shown on the desk's Activity page). */
+export async function judgeRemote(ruleId: string, guess: string, row?: number): Promise<JudgeResponse> {
   let res: Response;
   try {
     res = await fetch('/api/judge', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ ruleId, guess }),
+      body: JSON.stringify({ ruleId, guess, row }),
     });
   } catch {
     throw new JudgeUnavailable('The judge is unreachable. Check your connection.');

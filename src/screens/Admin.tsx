@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { CHAIN_CLUES, validateChain, WEEKDAY_DIFFICULTY, type ChainPuzzle, type StoredPuzzle } from '../lib/chain';
 import { dateOfPuzzle, puzzleNumber } from '../lib/daily';
 import { LIBRARY } from '../puzzles/library';
+import { call } from '../lib/adminCall';
+import { Activity } from './Activity';
 
 const TOKEN_KEY = 'clew:admin-token';
 const REVIEW_DAYS = 8; // today + the next 7
@@ -22,17 +24,6 @@ function writeToken(t: string) {
   } catch {
     /* session storage unavailable: token lives in memory only */
   }
-}
-
-async function call<T>(token: string, path: string, body?: unknown): Promise<T> {
-  const res = await fetch(path, {
-    method: body ? 'POST' : 'GET',
-    headers: { authorization: `Bearer ${token}`, ...(body ? { 'content-type': 'application/json' } : {}) },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const data = (await res.json().catch(() => ({}))) as T & { error?: string };
-  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-  return data;
 }
 
 const fmtDate = (no: number, opts: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short' }) =>
@@ -80,7 +71,25 @@ export function Admin() {
         }}
       />
     );
-  return <Desk token={token} onLock={lock} />;
+  return <Tabs token={token} onLock={lock} />;
+}
+
+type Tab = 'puzzles' | 'activity';
+
+function Tabs({ token, onLock }: { token: string; onLock: () => void }) {
+  const [tab, setTab] = useState<Tab>('puzzles');
+  return (
+    <>
+      <nav className="desk-tabs" role="tablist" aria-label="Desk sections">
+        {(['puzzles', 'activity'] as Tab[]).map((t) => (
+          <button key={t} role="tab" aria-selected={tab === t} className={`desk-tab${tab === t ? ' on' : ''}`} onClick={() => setTab(t)}>
+            {t === 'puzzles' ? 'Puzzles' : 'Activity'}
+          </button>
+        ))}
+      </nav>
+      {tab === 'puzzles' ? <Desk token={token} onLock={onLock} /> : <Activity token={token} onLock={onLock} />}
+    </>
+  );
 }
 
 function Login({ onUnlock }: { onUnlock: (token: string) => void }) {

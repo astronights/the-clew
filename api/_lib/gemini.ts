@@ -10,6 +10,19 @@ export interface Judgement {
   hint: string;
 }
 
+/** A verdict plus what the desk's Activity page shows about how it was reached (never sent to players). */
+export interface JudgeResult extends Judgement {
+  model: string;
+  /** One short sentence from a text model; empty for decision models. */
+  reason: string;
+  /** Decision models: P(correct). */
+  pCorrect?: number;
+  /** Set when the configured model failed and the fallback answered. */
+  fallbackFrom?: string;
+}
+
+type Raw = { verdict: Verdict; reason: string; pCorrect?: number };
+
 let template: string | null = null;
 
 /** The fixed judging instructions + worked examples (prompts/judge.md, after the first `---`). */
@@ -92,7 +105,7 @@ interface DecisionResponse {
 }
 
 /** Ask a decision model "does this guess correctly name the sequence?" via POST /v1beta/decisions. */
-async function decideWith(model: string, key: string, p: Puzzle, guess: string): Promise<Verdict> {
+async function decideWith(model: string, key: string, p: Puzzle, guess: string): Promise<Raw> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 15_000);
   try {
@@ -120,7 +133,8 @@ async function decideWith(model: string, key: string, p: Puzzle, guess: string):
     const a = data.answers?.correct;
     if (typeof a?.noul !== 'number') throw new Error(`${model} gave no decision`);
     console.log(`judge ${model}: P(correct)=${a.noul.toFixed(2)}${data.usage ? ` usage ${JSON.stringify(data.usage)}` : ''}`);
-    return a.noul >= DECISION_THRESHOLD ? 'correct' : a.noul >= 0.25 ? 'close' : 'wrong';
+    const verdict: Verdict = a.noul >= DECISION_THRESHOLD ? 'correct' : a.noul >= 0.25 ? 'close' : 'wrong';
+    return { verdict, reason: '', pCorrect: a.noul };
   } finally {
     clearTimeout(timer);
   }
@@ -130,7 +144,7 @@ async function decideWith(model: string, key: string, p: Puzzle, guess: string):
 export const FALLBACK_JUDGE_MODEL = 'gemini-2.5-flash';
 
 /** Ask one model for a verdict. Throws on any failure (HTTP error, unusable reply, timeout). */
-async function judgeWith(model: string, key: string, p: Puzzle, guess: string): Promise<Verdict> {
+async function judgeWith(model: string, key: string, p: Puzzle, guess: string): Promise<Raw> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 15_000);
   try {
@@ -148,7 +162,7 @@ async function judgeWith(model: string, key: string, p: Puzzle, guess: string): 
             type: 'OBJECT',
             properties: {
               verdict: { type: 'STRING', enum: ['correct', 'close', 'wrong'] },
-              hint: { type: 'STRING' },
+              reason: { type: 'STRING' },
             },
             required: ['verdict'],
           },
@@ -161,9 +175,9 @@ async function judgeWith(model: string, key: string, p: Puzzle, guess: string): 
     // shows in Vercel logs which model answered and whether the shared prefix came from Gemini's cache
     if (u) console.log(`judge ${model} tokens: prompt ${u.promptTokenCount ?? '?'}, cached ${u.cachedContentTokenCount ?? 0}`);
     const text = data.candidates?.[0]?.content?.parts?.map((x) => x.text ?? '').join('') ?? '';
-    const parsed = JSON.parse(text) as { verdict?: string };
+    const parsed = JSON.parse(text) as { verdict?: string; reason?: unknown };
     if (parsed.verdict !== 'correct' && parsed.verdict !== 'close' && parsed.verdict !== 'wrong') throw new Error(`${model} gave no verdict`);
-    return parsed.verdict;
+    return { verdict: parsed.verdict, reason: typeof parsed.reason === 'string' ? parsed.reason.slice(0, 400) : '' };
   } finally {
     clearTimeout(timer);
   }
@@ -176,16 +190,17 @@ async function judgeWith(model: string, key: string, p: Puzzle, guess: string): 
  * fails for any reason, the guess is judged by the fallback model instead, so a bad setting or a
  * model that doesn't support this kind of request can't break the game.
  */
-export async function askGemini(p: Puzzle, guess: string): Promise<Judgement> {
+export async function askGemini(p: Puzzle, guess: string): Promise<JudgeResult> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error('GEMINI_API_KEY is not set');
   const model = process.env.GEMINI_MODEL || FALLBACK_JUDGE_MODEL;
   try {
-    const verdict = isDecisionModel(model) ? await decideWith(model, key, p, guess) : await judgeWith(model, key, p, guess);
-    return { verdict, hint: '' };
+    const r = isDecisionModel(model) ? await decideWith(model, key, p, guess) : await judgeWith(model, key, p, guess);
+    return { ...r, hint: '', model };
   } catch (err) {
     if (model === FALLBACK_JUDGE_MODEL) throw err;
     console.error(`judge model ${model} failed, using ${FALLBACK_JUDGE_MODEL}:`, (err as Error).message);
-    return { verdict: await judgeWith(FALLBACK_JUDGE_MODEL, key, p, guess), hint: '' };
+    const r = await judgeWith(FALLBACK_JUDGE_MODEL, key, p, guess);
+    return { ...r, hint: '', model: FALLBACK_JUDGE_MODEL, fallbackFrom: model };
   }
 }

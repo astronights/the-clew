@@ -2,7 +2,7 @@ import { puzzleNumber } from '../src/lib/daily';
 import { fromChain, type Puzzle } from '../src/lib/puzzle';
 import { normalizeGuess } from '../src/lib/fuzzy';
 import { getSql } from './_lib/db';
-import { askGemini, type Judgement } from './_lib/gemini';
+import { askGemini, type JudgeResult, type Judgement } from './_lib/gemini';
 import { clientIp, hashIp, json, readJson } from './_lib/http';
 import { getPuzzle } from './_lib/puzzles';
 import { withinRateLimit } from './_lib/ratelimit';
@@ -21,7 +21,7 @@ async function findPuzzle(id: string): Promise<Puzzle | null> {
 }
 
 export async function POST(req: Request): Promise<Response> {
-  const body = await readJson<{ ruleId?: unknown; guess?: unknown }>(req);
+  const body = await readJson<{ ruleId?: unknown; guess?: unknown; row?: unknown }>(req);
   if (!body || typeof body.ruleId !== 'string' || typeof body.guess !== 'string') return json({ error: 'bad request' }, 400);
   const puzzle = await findPuzzle(body.ruleId);
   if (!puzzle) return json({ error: 'unknown puzzle' }, 404);
@@ -40,7 +40,8 @@ export async function POST(req: Request): Promise<Response> {
     }
   }
 
-  let judgement: Judgement;
+  let judgement: JudgeResult;
+  const started = Date.now();
   try {
     judgement = await askGemini(puzzle, guess);
   } catch (err) {
@@ -48,17 +49,26 @@ export async function POST(req: Request): Promise<Response> {
     return json({ error: 'judge unavailable' }, 503);
   }
 
-  // a record of what players typed and how it was judged (for reviewing the judge); never read back to skip a call
+  // the desk's Activity page reads this; it is never used to skip judging a guess
   if (sql) {
+    const row = Number(body.row);
     try {
       await sql.query(
-        `insert into verdict_cache (rule_id, normalized_guess, verdict, hint) values ($1, $2, $3, '')
-         on conflict (rule_id, normalized_guess) do update set verdict = excluded.verdict, created_at = now()`,
-        [puzzle.id, normalized, judgement.verdict],
+        `insert into guess_log (puzzle_no, row_no, guess, verdict, model, reason, p_correct, ms) values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [
+          Number(puzzle.id.split(':')[1]),
+          Number.isInteger(row) && row >= 1 && row <= 5 ? row : null,
+          guess,
+          judgement.verdict,
+          judgement.fallbackFrom ? `${judgement.model} (fallback from ${judgement.fallbackFrom})` : judgement.model,
+          judgement.reason || null,
+          judgement.pCorrect ?? null,
+          Date.now() - started,
+        ],
       );
     } catch (err) {
-      console.error('verdict log failed', err);
+      console.error('guess log failed', err);
     }
   }
-  return json(judgement);
+  return json({ verdict: judgement.verdict, hint: '' } satisfies Judgement);
 }

@@ -71,6 +71,10 @@ own text and never the row before it.
     Approve / Unapprove / Reject**. **Ask AI to change it** sends an instruction ("make clue 1 harder", "use football
     instead") plus the current puzzle to Gemini (`/api/admin/revise`) and saves the result as a draft; **Start over**
     writes a fresh one. An empty day can also **start from a built-in** puzzle.
+  - **Activity** (second tab) shows any past day: finished games and how many solved on each row, the most common
+    rule guesses, and **every rule guess** with the judge's verdict, its one-line reasoning (or P(correct) for a
+    decision model), the model that answered and how long it took. Guesses are stored in `guess_log` with no IP or
+    player id.
 - **Installable desk + reminders:** `/admin` is its own page (`admin.html`) with a web app manifest and a service
   worker (`public/admin-sw.js`), so it installs as **Clew desk** (iPhone: Share → Add to Home Screen; Android/desktop:
   "Install the desk app"). In the desk, **Turn on reminders** subscribes the device to Web Push. A daily Vercel Cron
@@ -98,9 +102,10 @@ api/
   admin/generate-batch.ts  POST several days in ONE Gemini request (ADMIN_TOKEN, up to 300 s)
   admin/revise.ts     POST an instruction → Gemini updates the day's puzzle, saved as a draft (ADMIN_TOKEN)
   admin/push.ts       GET the VAPID key; POST subscribe / unsubscribe / test (ADMIN_TOKEN)
+  admin/activity.ts   GET a day's plays, rule guesses and the judge's reasoning (ADMIN_TOKEN)
   cron/reminder.ts    daily check (Vercel Cron, CRON_SECRET): Sunday summary + "tomorrow isn't ready" nudge
   _lib/               db client, Gemini judge + sanitising, generator, puzzle store, rate limit, admin auth
-db/migrations/        001_init.sql, 002_puzzles.sql, 003_push.sql
+db/migrations/        001_init.sql, 002_puzzles.sql, 003_push.sql, 004_guess_log.sql
 admin.html            the desk's own page (manifest, icons, service worker); /admin rewrites to it
 public/               admin.webmanifest, admin-sw.js, icons/
 prompts/              puzzle-generator.md (writing puzzles), judge.md (judging rule guesses)
@@ -172,7 +177,7 @@ npm run build             # typecheck + production build
 
 1. Create a project at [neon.tech](https://neon.tech) and copy the **pooled** connection string.
 2. Put it in `.env` as `DATABASE_URL=...`.
-3. `npm run db:migrate` — creates `verdict_cache`, `daily_results`, `rate_limit`, `puzzles`, `push_subscriptions`
+3. `npm run db:migrate` — creates `verdict_cache`, `daily_results`, `rate_limit`, `puzzles`, `push_subscriptions`, `guess_log`
    (and `schema_migrations`).
 4. Optional, for local testing: `npm run db:seed -- --demo` adds fake results for today so the
    "x% of players needed more clues" line has data.

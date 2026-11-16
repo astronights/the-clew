@@ -4,8 +4,8 @@ import { fromChain } from '../src/lib/puzzle';
 import { LIBRARY } from '../src/puzzles/library';
 
 const puzzle = fromChain('chain:1', LIBRARY[0]);
-const ok = (verdict: string) =>
-  new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({ verdict }) }] } }] }), { status: 200 });
+const ok = (verdict: string, reason = 'because') =>
+  new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({ verdict, reason }) }] } }] }), { status: 200 });
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -26,7 +26,7 @@ describe('judging with a decision model (Decisions API)', () => {
       return decision(0.93);
     });
     vi.spyOn(console, 'log').mockImplementation(() => {});
-    expect(await askGemini(puzzle, 'the planets in order')).toEqual({ verdict: 'correct', hint: '' });
+    expect(await askGemini(puzzle, 'the planets in order')).toMatchObject({ verdict: 'correct', model: 'gemini-decision-1', pCorrect: 0.93 });
     expect(sent!.url).toBe('https://generativelanguage.googleapis.com/v1beta/decisions');
     expect(sent!.headers['x-goog-api-key']).toBe('test');
     expect(sent!.body.model).toBe('gemini-decision-1');
@@ -62,7 +62,7 @@ describe('judge model fallback', () => {
       return url.includes('/decisions') ? new Response('{"error":{"code":400,"message":"unsupported"}}', { status: 400 }) : ok('correct');
     });
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(await askGemini(puzzle, 'planets')).toEqual({ verdict: 'correct', hint: '' });
+    expect(await askGemini(puzzle, 'planets')).toMatchObject({ verdict: 'correct', model: FALLBACK_JUDGE_MODEL, fallbackFrom: 'gemini-decision-1' });
     expect(calls).toHaveLength(2);
     expect(calls[1]).toContain(FALLBACK_JUDGE_MODEL);
   });
@@ -74,7 +74,7 @@ describe('judge model fallback', () => {
       calls.push(url);
       return ok('close');
     });
-    expect((await askGemini(puzzle, 'space')).verdict).toBe('close');
+    expect(await askGemini(puzzle, 'space')).toMatchObject({ verdict: 'close', reason: 'because', model: 'gemini-3.8-flash' });
     expect(calls).toHaveLength(1);
   });
 });

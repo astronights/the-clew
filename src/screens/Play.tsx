@@ -86,7 +86,7 @@ export function Play({ puzzle, storageKey, seed, title, onFinish, renderResult }
     let correct = false;
     setBusy(true);
     try {
-      correct = (await judgeRemote(puzzle.id, text)).verdict === 'correct';
+      correct = (await judgeRemote(puzzle.id, text, game.revealed)).verdict === 'correct';
     } catch (e) {
       setBusy(false);
       return setError(e instanceof JudgeUnavailable ? `${e.message} Nothing was used up.` : 'Something went wrong.');
