@@ -23,11 +23,11 @@ export function HowToPlay({ onClose }: { onClose: () => void }) {
         <ol className="howto-steps">
           <li>Only the first clue is showing.</li>
           <li>
-            <strong>Guess what comes next.</strong> The next clue opens, with a ✓ if you called it. Leave the box empty to just open it.
+            <strong>Name the rule</strong> in your own words as soon as you've spotted it, e.g. "the alphabet". The fewer clues you needed, the
+            better.
           </li>
           <li>
-            <strong>Name the rule</strong> whenever you've spotted it, e.g. "the alphabet". That's what's scored: the fewer clues you needed, the
-            better.
+            Not sure yet? Tap <strong>Next clue</strong>. A wrong guess opens the next clue too.
           </li>
         </ol>
         <p className="note">New sequence every day at 03:14:15 UTC ({rolloverLocalTime()} your time).</p>

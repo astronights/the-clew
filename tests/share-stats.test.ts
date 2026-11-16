@@ -11,7 +11,8 @@ describe('share', () => {
     expect(neededMorePercent(counts, 2)).toBe(92);
   });
   it('writes a friendly line that fits the day', () => {
-    expect(shareText(42, 3, ['test', 'miss', 'solved'])).toBe('🧶 The Clew #42\nUntangled it on clue 3 of 5 🎉\n🤔 ❌ ✅\nhttps://the-clew.vercel.app');
+    expect(shareText(42, 3, ['next', 'miss', 'solved'])).toBe('🧶 The Clew #42\nUntangled it on clue 3 of 5 🎉\n⏭️ ❌ ✅\nhttps://the-clew.vercel.app');
+    expect(shareText(42, 2, ['test', 'solved'])).toContain('⏭️ ✅');
     expect(shareText(42, 1, ['solved'])).toContain('first clue');
     expect(shareText(42, 5, ['test', 'miss', 'test', 'next', 'solved'])).toContain('phew');
     expect(shareText(42, 0, ['test', 'test', 'miss', 'miss'])).toContain('tangled');

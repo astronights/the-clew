@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { GuessInput, type GuessValue } from '../components/GuessInput';
 import { Thread } from '../components/Thread';
 import { confetti } from '../components/confetti';
 import { judgeRemote, JudgeUnavailable } from '../lib/api';
-import { canGuess, giveUp, guessesByRow, guessNext, guessRule, isLastRow, isOver, newGame, next, ROWS, type GameState } from '../lib/game';
+import { canOpenNext, giveUp, guessRule, isLastRow, isOver, newGame, next, ROWS, type GameState } from '../lib/game';
 import type { Puzzle } from '../lib/puzzle';
 import { load, save } from '../lib/storage';
 
@@ -28,12 +27,9 @@ const RULE_EXAMPLE = 'e.g. Bond films in order';
 
 export function Play({ puzzle, storageKey, seed, title, onFinish, renderResult }: Props) {
   const [game, setGame] = useState<GameState>(() => restore(puzzle, storageKey, seed));
-  const [guess, setGuess] = useState<GuessValue>({ text: '', error: null });
-  const [guessKey, setGuessKey] = useState(0);
   const [ruleText, setRuleText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [guessError, setGuessError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [announce, setAnnounce] = useState('');
   const finishedRef = useRef(isOver(game));
@@ -53,7 +49,6 @@ export function Play({ puzzle, storageKey, seed, title, onFinish, renderResult }
 
   const over = isOver(game);
   const last = isLastRow(game);
-  const typed = guess.text !== '';
 
   const apply = (nextState: GameState, prefix = '') => {
     let msg = prefix;
@@ -62,20 +57,8 @@ export function Play({ puzzle, storageKey, seed, title, onFinish, renderResult }
     else if (nextState.revealed > game.revealed) msg += `Clue ${nextState.revealed}: ${puzzle.rows[nextState.revealed - 1]}.`;
     setAnnounce(msg);
     setError(null);
-    setGuessError(null);
     setFeedback(null);
     setGame(nextState);
-  };
-
-  const onGuess = () => {
-    setGuessError(null);
-    if (!typed) return apply(next(game));
-    if (guess.error) return setGuessError(guess.error);
-    const after = guessNext(puzzle, game, guess.text);
-    const right = guessesByRow(after).get(game.revealed)?.pass;
-    apply(after, right ? 'You called it! ' : '');
-    setGuess({ text: '', error: null });
-    setGuessKey((k) => k + 1);
   };
 
   const onRule = async () => {
@@ -107,35 +90,13 @@ export function Play({ puzzle, storageKey, seed, title, onFinish, renderResult }
         )}
       </div>
 
-      <Thread puzzle={puzzle} revealed={game.revealed} over={over} guesses={guessesByRow(game)} />
+      <Thread puzzle={puzzle} revealed={game.revealed} over={over} />
 
       {over && renderResult(game)}
       <div ref={endRef} />
 
       {!over && (
         <div className="answer">
-          {canGuess(game) ? (
-            <form
-              className="field-row"
-              onSubmit={(e) => {
-                e.preventDefault();
-                onGuess();
-              }}
-            >
-              <GuessInput resetKey={guessKey} onChange={setGuess} disabled={busy} />
-              <button type="submit" className="btn" disabled={busy}>
-                {typed ? 'Guess ›' : 'Next ›'}
-              </button>
-              {guessError && (
-                <p className="form-error field-row-error" role="alert">
-                  {guessError}
-                </p>
-              )}
-            </form>
-          ) : (
-            <p className="note">Last clue. Name the rule, or give up.</p>
-          )}
-          <div className="answer-sep" />
           <form
             className="field-row"
             onSubmit={(e) => {
@@ -168,10 +129,19 @@ export function Play({ puzzle, storageKey, seed, title, onFinish, renderResult }
               {error}
             </p>
           )}
-          {last && (
-            <button type="button" className="btn btn-link" onClick={() => apply(giveUp(game))} disabled={busy}>
-              Give up and show the answer
+          {canOpenNext(game) ? (
+            <button type="button" className="btn btn-block next-clue" onClick={() => apply(next(game))} disabled={busy}>
+              Next clue ›
             </button>
+          ) : (
+            last && (
+              <>
+                <p className="note">Last clue. Name the rule, or give up.</p>
+                <button type="button" className="btn btn-link" onClick={() => apply(giveUp(game))} disabled={busy}>
+                  Give up and show the answer
+                </button>
+              </>
+            )
           )}
         </div>
       )}

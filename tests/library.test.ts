@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { validateChain } from '../src/lib/chain';
-import { fromChain, guessIsRight, ROWS } from '../src/lib/puzzle';
+import { fromChain, ROWS } from '../src/lib/puzzle';
 import { LIBRARY } from '../src/puzzles/library';
 
 describe('built-in puzzle library', () => {
@@ -9,17 +9,7 @@ describe('built-in puzzle library', () => {
     expect(new Set(LIBRARY.map((p) => p.id)).size).toBe(LIBRARY.length);
     for (const p of LIBRARY) expect(validateChain(p), p.id).toEqual([]);
   });
-  it('every row accepts its own text', () => {
-    for (const lib of LIBRARY) {
-      const p = fromChain(`lib:${lib.id}`, lib);
-      expect(p.rows).toHaveLength(ROWS);
-      for (let r = 1; r < ROWS; r++) expect(guessIsRight(p, r, p.rows[r]), `${lib.id} row ${r + 1}`).toBe(true);
-    }
-  });
-  it('a row never accepts the previous row', () => {
-    for (const lib of LIBRARY) {
-      const p = fromChain(`lib:${lib.id}`, lib);
-      for (let r = 1; r < ROWS; r++) expect(guessIsRight(p, r, p.rows[r - 1]), `${lib.id} row ${r + 1}`).toBe(false);
-    }
+  it('every puzzle has 5 rows', () => {
+    for (const lib of LIBRARY) expect(fromChain(`lib:${lib.id}`, lib).rows, lib.id).toHaveLength(ROWS);
   });
 });

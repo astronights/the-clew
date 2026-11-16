@@ -7,10 +7,9 @@ One sequence a day, the same for everyone (new puzzle at 03:14:15 UTC).
 
 - The board has **5 rows**: five things that come in a fixed order (planets, Greek letters, Bond actors…).
   Only row 1 is showing at the start.
-- **Guess what comes next** in the free-text box. The next row opens, marked **✓ Called it** if you were right (wrong guesses show nothing).
-  Leave the box empty and the button says **Next ›**: it just opens the next row. Guesses aren't scored.
 - **Name the rule** (the sequence) in your own words at any time. Right → solved on that row. Wrong → a short
   "not it" and the next row opens. No hints.
+- Not sure yet? **Next clue ›** opens the next row.
 - On row 5 there's nothing left to open: one final rule guess, or give up.
 - Score = the row you named the rule on (1–5).
 
@@ -19,15 +18,12 @@ Share text:
 ```
 🧶 The Clew #42
 Untangled it on clue 3 of 5 🎉
-🤔 ❌ ✅
+⏭️ ❌ ✅
 https://the-clew.vercel.app
 ```
 
-(one emoji per row: ⏭️ next · 🤔 guessed · ❌ wrong rule · ✅ got it; the line changes with the day, e.g.
+(one emoji per row: ⏭️ next clue · ❌ wrong rule · ✅ got it; the line changes with the day, e.g.
 "Got it on the first clue 🤯", "Totally tangled today 🙈")
-
-Guesses are checked in code against each row's item: the item itself, or a whole word of a disguised one ("beta"
-for "Beta version"). Case, accents, punctuation and a leading "the" are ignored, and any script works. Only the free-text rule goes to the AI judge.
 
 ## Where puzzles come from
 
@@ -114,7 +110,7 @@ src/
   puzzles/library.ts  built-in sequence puzzles
   lib/                puzzle + game state, daily picker, answer matching, fuzzy rule matching,
                       puzzle checks (chain.ts), share text, stats, storage, API client
-  components/         Thread (the 5 rows), GuessInput, ResultCard, HowToPlay, confetti
+  components/         Thread (the 5 rows), ResultCard, HowToPlay, confetti
   screens/            Today, Play, Stats, Admin (desk entry: src/admin-main.tsx)
 tests/                Vitest suites
 ```

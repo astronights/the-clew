@@ -1,4 +1,3 @@
-import { matchesRow } from './answer';
 import type { ChainPuzzle } from './chain';
 
 /** Rows per puzzle: 5 items, the last is the answer. Row 1 is shown; each guess opens the next. */
@@ -27,8 +26,3 @@ export function fromChain(id: string, c: ChainPuzzle): Puzzle {
   };
 }
 
-/** Did the player guess the item in `row`? Checked by code, never AI. */
-export function guessIsRight(p: Puzzle, row: number, guess: string): boolean {
-  // exact item, or a whole word/phrase of a disguised one ("beta" for "Beta version")
-  return matchesRow([p.rows[row] ?? ''], guess, false);
-}

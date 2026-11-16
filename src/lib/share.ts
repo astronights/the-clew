@@ -3,7 +3,8 @@ import type { Outcome } from './game';
 
 export const SITE = 'https://the-clew.vercel.app';
 
-export const OUTCOME_EMOJI: Record<Outcome, string> = { next: '⏭️', test: '🤔', miss: '❌', solved: '✅' };
+/** ⏭️ opened the next clue · ❌ wrong rule · ✅ named it. ('test' is from older saved games: it opened a clue too.) */
+export const OUTCOME_EMOJI: Record<Outcome, string> = { next: '⏭️', test: '⏭️', miss: '❌', solved: '✅' };
 
 /** counts[k] = players who solved on clue k (1..CLUE_COUNT); counts[0] = unsolved. */
 export function neededMorePercent(counts: number[], solvedOn: number): number | null {

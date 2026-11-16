@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { canGuess, giveUp, guessesByRow, guessNext, guessRule, newGame, next, ROWS } from '../src/lib/game';
-import { fromChain, guessIsRight } from '../src/lib/puzzle';
+import { canOpenNext, giveUp, guessRule, newGame, next, ROWS } from '../src/lib/game';
+import { fromChain } from '../src/lib/puzzle';
 import type { ChainPuzzle } from '../src/lib/chain';
 
 const planets: ChainPuzzle = {
@@ -17,14 +17,6 @@ describe('puzzle rows', () => {
     expect(ROWS).toBe(5);
     expect(p.rows).toEqual(['Freddie Mercury', 'Venus flytrap', 'Earth Day', 'Mars bar', 'Planet Jupiter']);
   });
-  it('accept the item itself or a whole word of a disguised one', () => {
-    expect(guessIsRight(p, 1, 'venus')).toBe(true);
-    expect(guessIsRight(p, 1, 'Venus flytrap')).toBe(true);
-    expect(guessIsRight(p, 2, 'Mars')).toBe(false);
-    expect(guessIsRight(p, 4, 'planet jupiter')).toBe(true);
-    expect(guessIsRight(p, 4, 'Jupiter')).toBe(true);
-    expect(guessIsRight(p, 4, 'Saturn')).toBe(false);
-  });
 });
 
 describe('game flow', () => {
@@ -32,20 +24,10 @@ describe('game flow', () => {
     const g = newGame(p, 's');
     expect(g.revealed).toBe(1);
   });
-  it('a guess opens the next row and is marked on it', () => {
-    let g = guessNext(p, newGame(p, 's'), 'Venus');
-    g = guessNext(p, g, 'Pluto');
-    expect(g.revealed).toBe(3);
-    const byRow = guessesByRow(g);
-    expect(byRow.get(1)?.pass).toBe(true);
-    expect(byRow.get(2)?.pass).toBe(false);
-    expect(g.outcomes).toEqual(['test', 'test']);
-  });
-  it('next opens a row without guessing', () => {
+  it('next opens a row', () => {
     const g = next(newGame(p, 's'));
     expect(g.revealed).toBe(2);
     expect(g.outcomes).toEqual(['next']);
-    expect(guessesByRow(g).size).toBe(0);
   });
   it('a right rule solves on the current row; a wrong one opens the next', () => {
     expect(guessRule(newGame(p, 's'), 'planets', true)).toMatchObject({ status: 'solved', solvedOn: 1, outcomes: ['solved'] });
@@ -53,11 +35,11 @@ describe('game flow', () => {
     expect(g.revealed).toBe(2);
     expect(g.outcomes).toEqual(['miss']);
   });
-  it('no guessing on the last row; a wrong rule there ends the game', () => {
+  it('no next clue on the last row; a wrong rule there ends the game', () => {
     let g = newGame(p, 's');
     for (let i = 1; i < ROWS; i++) g = next(g);
-    expect(canGuess(g)).toBe(false);
-    expect(guessNext(p, g, 'x')).toBe(g);
+    expect(canOpenNext(g)).toBe(false);
+    expect(next(g)).toBe(g);
     expect(guessRule(g, 'nope', false)).toMatchObject({ status: 'failed', solvedOn: 0 });
     expect(giveUp(g).status).toBe('failed');
   });

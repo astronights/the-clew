@@ -312,15 +312,6 @@ input {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.guess-verdict {
-  font-size: 0.85rem;
-}
-.guess-verdict.is-right {
-  color: var(--right);
-}
-.tag.guess-right {
-  box-shadow: inset 3px 0 0 var(--right);
-}
 .tag.is-locked {
   border-style: dashed;
   border-color: var(--line);
@@ -1443,4 +1434,10 @@ select.input {
 }
 .act-days td:first-child .admin-small {
   font-family: var(--sans);
+}
+
+/* "Next clue" under the rule box */
+.next-clue {
+  margin-top: 8px;
+  height: 44px;
 }

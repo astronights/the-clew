@@ -26,9 +26,9 @@ The puzzle is a **sequence**, in the spirit of the "Sequences" round of the BBC 
 
 - There is a hidden progression: things that come in a fixed, well-known order.
 - The board has **5 rows**: 5 items of the sequence, in order. The 5th is the answer.
-- The player sees **row 1** first. Each time they guess what comes next, the next row opens and shows whether
-  their guess was right. So players will try to type **the item in each row** before it opens.
-- They score by naming **the rule** (what the sequence is) with as few rows open as possible.
+- The player sees **row 1** first. They can name **the rule** (what the sequence is) at any time; a wrong guess,
+  or tapping "Next clue", opens the next row.
+- They score by naming the rule with as few rows open as possible.
 - Fewer clues = a better score, so the early clues should be genuinely hard and each clue should help a bit more.
 
 In *Only Connect* the classic sequences are things like:
