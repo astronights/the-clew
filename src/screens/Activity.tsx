@@ -17,6 +17,8 @@ interface Guess {
 }
 
 interface Data {
+  /** true until migration 004 (guess_log) has been run */
+  logMissing?: boolean;
   today: number;
   puzzleNo: number;
   puzzle: { connection: string; clues: string[] } | null;
@@ -86,6 +88,12 @@ export function Activity({ token, onLock }: { token: string; onLock: () => void 
       {error && (
         <p className="form-error" role="alert">
           {error}
+        </p>
+      )}
+      {data.logMissing && (
+        <p className="form-error" role="alert">
+          Rule guesses aren't being saved yet: the guess_log table is missing. Run <code>npm run db:migrate</code> against the
+          production database.
         </p>
       )}
 
