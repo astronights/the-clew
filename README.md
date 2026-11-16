@@ -20,7 +20,7 @@ Share text:
 🧶 The Clew #42
 Untangled it on clue 3 of 5 🎉
 🤔 ❌ ✅
-theclew.fyi
+https://the-clew.vercel.app
 ```
 
 (one emoji per row: ⏭️ next · 🤔 guessed · ❌ wrong rule · ✅ got it; the line changes with the day, e.g.

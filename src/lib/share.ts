@@ -1,7 +1,7 @@
 import { ROWS as CLUE_COUNT } from './puzzle';
 import type { Outcome } from './game';
 
-export const SITE = 'theclew.fyi';
+export const SITE = 'https://the-clew.vercel.app';
 
 export const OUTCOME_EMOJI: Record<Outcome, string> = { next: '⏭️', test: '🤔', miss: '❌', solved: '✅' };
 
