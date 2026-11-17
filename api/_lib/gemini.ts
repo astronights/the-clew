@@ -121,8 +121,9 @@ async function decideWith(model: string, key: string, p: Puzzle, guess: string):
             type: 'noul',
             instructions: decisionInstructions(),
             criteria: {
-              true_description: "The guess correctly names today's sequence (a quizmaster would accept it).",
-              false_description: 'The guess is too vague, describes a different sequence, gets a key detail wrong, or is not a real answer.',
+              true_description:
+                "The guess names a sequence that gives these five items in this order, in any wording (a quizmaster would accept it). The official rule's extra qualifiers are not required, and an equally valid sequence with the same items counts.",
+              false_description: 'The guess is too vague to identify the sequence, describes a sequence with different items or a different order, or is not a real answer.',
             },
           },
         },

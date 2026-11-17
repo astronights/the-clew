@@ -36,30 +36,40 @@ ask: *would a quizmaster accept this answer on the spot?* If yes, it's correct.
 
 ## How to judge
 
+0. **The test: does the guess lead to these five items, in this order?** If someone who knows their
+   stuff, given only the guess, would produce this sequence (or at once recognise it as the one meant),
+   the guess is correct. Be generous: a quizmaster accepts any answer that is right, not only the one on
+   the card.
 1. **Meaning, not wording.** Synonyms, paraphrases, abbreviations, informal language, typos and
    different word order are all fine. "the planets going outwards" = "planets in order from the Sun".
-2. **The progression must be identified.** Most sequences are named by their set plus their order. If
-   the set already implies a standard order (days of the week, the alphabet, the planets, the Greek
-   alphabet, numbers), naming the set is enough: "Greek letters" is correct for alpha → epsilon.
-   If the set has no single obvious order, the ordering idea is required: "James Bond actors" is
-   correct (there is one standard order), but "famous actors" is not.
-3. **Direction matters when it is the point.** "Oceans from smallest to largest" is wrong if the
+   The official rule is just one way of saying it: **never require its extra qualifiers** ("in
+   publication order", "chronologically", "in alphabetical order", "from the Sun") when the set already
+   has one natural order. "Harry Potter books" is correct for Philosopher's Stone → Goblet of Fire.
+2. **Any equally valid sequence counts.** If the guess names a different set that produces exactly the
+   same items in the same order, it is correct: "Harry Potter films" is as right as "Harry Potter
+   books" (same titles, same order); "NATO alphabet" and "phonetic alphabet" are both right. Only
+   mark it down if the guess's sequence would give different items or a different order.
+3. **The set must be identified.** If the set has one obvious order (days of the week, the alphabet,
+   the planets, Greek letters, numbers, book or film series, monarchs, Bond actors), naming the set is
+   enough. Only when the same set is commonly ordered in several different ways (oceans by size or by
+   name, countries by population or by area) must the guess say which.
+4. **Direction matters when it is the point.** "Oceans from smallest to largest" is wrong if the
    sequence goes largest to smallest. If the player just names the set without a direction and the
    direction is the natural one, that's fine.
-4. **Numbers and specifics must match.** "Powers of 3" is wrong for 16, 32, 64, 128. "Multiples of 4" is
+5. **Numbers and specifics must match.** "Powers of 3" is wrong for 16, 32, 64, 128. "Multiples of 4" is
    wrong for the squares. "Summer Olympics" is correct for the Summer Olympic hosts, but "Winter
    Olympics" is wrong.
-5. **Disguised clues.** Many clues hide the item inside a phrase ("Freddie Mercury", "Venus flytrap").
+6. **Disguised clues.** Many clues hide the item inside a phrase ("Freddie Mercury", "Venus flytrap").
    The player only needs to name the underlying sequence (the planets), not the disguise. Describing
    only the disguise ("famous people and plants") is wrong.
-6. **Too broad is close, not correct.** "Space stuff", "science words", "numbers", "history" or "things
+7. **Too broad is close, not correct.** "Space stuff", "science words", "numbers", "history" or "things
    in order" are too broad to identify the sequence: verdict "close" if on topic, otherwise "wrong".
-7. **Too narrow is usually still correct** if it clearly identifies the same progression ("the inner
+8. **Too narrow is usually still correct** if it clearly identifies the same progression ("the inner
    planets then Jupiter" for Mercury → Jupiter is correct).
-8. **Listing the items is fine** if it shows the progression ("mercury venus earth mars jupiter").
+9. **Listing the items is fine** if it shows the progression ("mercury venus earth mars jupiter").
    Just repeating one clue is not a description and is "wrong".
-9. **Language.** Accept guesses in any language if they clearly name the same sequence.
-10. **Ignore everything else.** Spelling, grammar, capitalisation, politeness and emoji don't matter.
+10. **Language.** Accept guesses in any language if they clearly name the same sequence.
+11. **Ignore everything else.** Spelling, grammar, capitalisation, politeness and emoji don't matter.
 
 ## Worked examples
 
@@ -96,6 +106,13 @@ Puzzle: Connery → Lazenby → Moore → Dalton → Brosnan. Rule: "James Bond 
 - "actors who played james bond chronologically" → correct
 - "british actors" → close
 - "bond villains" → wrong
+
+Puzzle: Philosopher's Stone → Chamber of Secrets → Prisoner of Azkaban → Goblet of Fire → Order of the Phoenix. Rule: "Harry Potter books in publication order".
+- "harry potter books" → correct (the series has one natural order; "publication order" is not required)
+- "harry potter films" → correct (same titles in the same order)
+- "the potter series" → correct
+- "wizard books" → close
+- "hogwarts houses" → wrong
 
 Puzzle: Pacific → Atlantic → Indian → Southern → Arctic. Rule: "Oceans from largest to smallest".
 - "oceans by size" → correct
