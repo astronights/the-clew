@@ -23,8 +23,8 @@ export function HowToPlay({ onClose }: { onClose: () => void }) {
         <ol className="howto-steps">
           <li>Only the first clue is showing.</li>
           <li>
-            <strong>Name the rule</strong> in your own words as soon as you've spotted it, e.g. "the alphabet". The fewer clues you needed, the
-            better.
+            <strong>Name the sequence</strong> as soon as you've spotted it, e.g. "the planets" or "Bond films". Any wording that identifies it
+            counts, and you don't need to say which order. The fewer clues you needed, the better.
           </li>
           <li>
             Not sure yet? Tap <strong>Next clue</strong>. A wrong guess opens the next clue too.

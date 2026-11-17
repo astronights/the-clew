@@ -49,7 +49,7 @@ export function ResultCard({ puzzle, solvedOn, outcomes, puzzleNo, counts }: Pro
   return (
     <section className="result" aria-live="polite">
       <h2 className="result-head">{solved ? (solvedOn === 1 ? 'First clue. Wow.' : `Untangled on clue ${solvedOn} of ${ROWS}.`) : 'Tangled today.'}</h2>
-      <p className="eyebrow">The rule</p>
+      <p className="eyebrow">The sequence</p>
       <p className="result-rule">{puzzle.connection}</p>
       <p className="result-expl">{puzzle.explanation}</p>
 

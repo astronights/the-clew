@@ -23,7 +23,7 @@ function restore(p: Puzzle, key: string, seed: string): GameState {
   return valid ? saved : newGame(p, seed);
 }
 
-const RULE_EXAMPLE = 'e.g. Bond films in order';
+const RULE_EXAMPLE = 'e.g. Bond films';
 
 export function Play({ puzzle, storageKey, seed, title, onFinish, renderResult }: Props) {
   const [game, setGame] = useState<GameState>(() => restore(puzzle, storageKey, seed));
@@ -106,7 +106,7 @@ export function Play({ puzzle, storageKey, seed, title, onFinish, renderResult }
           >
             <div className="field">
               <label className="field-label" htmlFor="rule-input">
-                The rule · in your words
+                What's the sequence?
               </label>
               <input
                 id="rule-input"
@@ -136,7 +136,7 @@ export function Play({ puzzle, storageKey, seed, title, onFinish, renderResult }
           ) : (
             last && (
               <>
-                <p className="note">Last clue. Name the rule, or give up.</p>
+                <p className="note">Last clue. Name the sequence, or give up.</p>
                 <button type="button" className="btn btn-link" onClick={() => apply(giveUp(game))} disabled={busy}>
                   Give up and show the answer
                 </button>

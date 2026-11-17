@@ -124,7 +124,9 @@ Reply with **only** a JSON object, no markdown fences, no commentary, in exactly
 
 Field rules:
 
-- `connection`: the rule as a short, plain sentence a player would recognise (max 120 characters). Do not mention the answer.
+- `connection`: the plainest name for the sequence, the way a player would say it ("Harry Potter books", "The planets",
+  "Bond actors"), max 120 characters. Only add an ordering phrase when the same set is commonly ordered in different
+  ways and the order is the point ("Oceans by size"). Do not mention the answer.
 - `clues`: exactly 5 strings, the items of the sequence in order (plain or disguised, consistently). The 5th is the answer.
 - `explanation`: 1–2 sentences shown after the game, explaining the sequence and why the 5th comes next.
 - `category`: one word or two, e.g. Science, Geography, History, Language, Film, Sport, Music, Maths.
