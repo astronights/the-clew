@@ -14,6 +14,8 @@ interface Guess {
   reason: string | null;
   pCorrect: number | null;
   ms: number | null;
+  /** Set when a player said "I think I was right". */
+  flaggedAt?: string | null;
 }
 
 interface Data {
@@ -25,8 +27,12 @@ interface Data {
   /** [gave up / missed, solved on row 1..5] */
   counts: number[];
   guesses: Guess[];
+  /** Guesses players flagged as wrongly rejected, newest flag first. */
+  flagged?: Guess[];
+  /** true until migration 005 (flags) has been run */
+  flagsMissing?: boolean;
   top: { guess: string; n: number; correct: number; close: number }[];
-  days: { puzzleNo: number; plays: number; solved: number; guesses: number }[];
+  days: { puzzleNo: number; plays: number; solved: number; guesses: number; flags?: number }[];
 }
 
 const VERDICT_TEXT: Record<Verdict, string> = { correct: 'correct', close: 'close', wrong: 'wrong' };
@@ -88,6 +94,11 @@ export function Activity({ token, onLock }: { token: string; onLock: () => void 
       {error && (
         <p className="form-error" role="alert">
           {error}
+        </p>
+      )}
+      {!data.logMissing && data.flagsMissing && (
+        <p className="form-error" role="alert">
+          Player flags aren't being saved yet. Run <code>npm run db:migrate</code> against the production database.
         </p>
       )}
       {data.logMissing && (
@@ -163,6 +174,20 @@ export function Activity({ token, onLock }: { token: string; onLock: () => void 
         </div>
       )}
 
+      {!!data.flagged?.length && (
+        <div className="admin-section act-flagged">
+          <div className="admin-section-head">
+            <h3>Flagged by players</h3>
+            <span className="admin-small">"I think I was right"</span>
+          </div>
+          <ul className="act-guesses">
+            {data.flagged.map((g) => (
+              <GuessItem key={g.id} g={g} />
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="admin-section">
         <div className="admin-section-head">
           <h3>Rule guesses</h3>
@@ -180,24 +205,7 @@ export function Activity({ token, onLock }: { token: string; onLock: () => void 
         ) : (
           <ul className="act-guesses">
             {shown.map((g) => (
-              <li key={g.id}>
-                <div className="act-guess-head">
-                  <span className="act-guess-text">{g.guess}</span>
-                  <span className={`chip verdict-${g.verdict}`}>{VERDICT_TEXT[g.verdict]}</span>
-                </div>
-                {(g.reason || g.pCorrect != null) && (
-                  <p className="act-reason">
-                    {g.reason}
-                    {g.pCorrect != null && <span className="admin-small">{g.reason ? ' · ' : ''}P(correct) {g.pCorrect.toFixed(2)}</span>}
-                  </p>
-                )}
-                <p className="admin-small act-meta">
-                  {fmtTime(g.at)}
-                  {g.row ? ` · clue ${g.row} of 5` : ''}
-                  {g.model ? ` · ${g.model}` : ''}
-                  {g.ms != null ? ` · ${(g.ms / 1000).toFixed(1)}s` : ''}
-                </p>
-              </li>
+              <GuessItem key={g.id} g={g} />
             ))}
           </ul>
         )}
@@ -214,6 +222,7 @@ export function Activity({ token, onLock }: { token: string; onLock: () => void 
               <th>Finished</th>
               <th>Solved</th>
               <th>Guesses</th>
+              <th>Flags</th>
             </tr>
           </thead>
           <tbody>
@@ -225,6 +234,7 @@ export function Activity({ token, onLock }: { token: string; onLock: () => void 
                 <td>{d.plays}</td>
                 <td>{pct(d.solved, d.plays)}</td>
                 <td>{d.guesses}</td>
+                <td>{d.flags || ''}</td>
               </tr>
             ))}
           </tbody>
@@ -240,5 +250,31 @@ function Stat({ label, value }: { label: string; value: string }) {
       <div className="act-stat-value">{value}</div>
       <div className="act-stat-label">{label}</div>
     </div>
+  );
+}
+
+function GuessItem({ g }: { g: Guess }) {
+  return (
+    <li>
+      <div className="act-guess-head">
+        <span className="act-guess-text">{g.guess}</span>
+        <span>
+          {g.flaggedAt && <span className="chip verdict-flagged">flagged</span>}
+          <span className={`chip verdict-${g.verdict}`}>{VERDICT_TEXT[g.verdict]}</span>
+        </span>
+      </div>
+      {(g.reason || g.pCorrect != null) && (
+        <p className="act-reason">
+          {g.reason}
+          {g.pCorrect != null && <span className="admin-small">{g.reason ? ' · ' : ''}P(correct) {g.pCorrect.toFixed(2)}</span>}
+        </p>
+      )}
+      <p className="admin-small act-meta">
+        {fmtTime(g.at)}
+        {g.row ? ` · clue ${g.row} of 5` : ''}
+        {g.model ? ` · ${g.model}` : ''}
+        {g.ms != null ? ` · ${(g.ms / 1000).toFixed(1)}s` : ''}
+      </p>
+    </li>
   );
 }

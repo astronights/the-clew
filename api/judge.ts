@@ -50,11 +50,13 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   // the desk's Activity page reads this; it is never used to skip judging a guess
+  let logId: number | undefined;
   if (sql) {
     const row = Number(body.row);
     try {
-      await sql.query(
-        `insert into guess_log (puzzle_no, row_no, guess, verdict, model, reason, p_correct, ms) values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      const rows = (await sql.query(
+        `insert into guess_log (puzzle_no, row_no, guess, verdict, model, reason, p_correct, ms) values ($1, $2, $3, $4, $5, $6, $7, $8)
+         returning id`,
         [
           Number(puzzle.id.split(':')[1]),
           Number.isInteger(row) && row >= 1 && row <= 5 ? row : null,
@@ -65,10 +67,12 @@ export async function POST(req: Request): Promise<Response> {
           judgement.pCorrect ?? null,
           Date.now() - started,
         ],
-      );
+      )) as { id: number | string }[];
+      logId = rows[0] ? Number(rows[0].id) : undefined;
     } catch (err) {
       console.error('guess log failed', err);
     }
   }
-  return json({ verdict: judgement.verdict, hint: '' } satisfies Judgement);
+  // `id` lets the player flag a rejected guess for review (/api/flag)
+  return json({ verdict: judgement.verdict, hint: '', ...(logId ? { id: logId } : {}) } satisfies Judgement & { id?: number });
 }

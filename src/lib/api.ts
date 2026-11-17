@@ -5,6 +5,22 @@ export type Verdict = 'correct' | 'close' | 'wrong';
 export interface JudgeResponse {
   verdict: Verdict;
   hint: string;
+  /** The logged guess, so a rejected one can be flagged for review. */
+  id?: number;
+}
+
+/** "I think I was right": flag a rejected rule guess for the editor. Returns whether it was recorded. */
+export async function flagGuess(id: number): Promise<boolean> {
+  try {
+    const res = await fetch('/api/flag', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export class JudgeUnavailable extends Error {}

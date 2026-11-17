@@ -16,6 +16,8 @@ export interface ActivityGuess {
   reason: string | null;
   pCorrect: number | null;
   ms: number | null;
+  /** When a player said "I think I was right". */
+  flaggedAt: string | null;
 }
 
 export interface ActivityDay {
@@ -23,7 +25,11 @@ export interface ActivityDay {
   plays: number;
   solved: number;
   guesses: number;
+  flags: number;
 }
+
+const GUESS_COLS =
+  "id, created_at, row_no, guess, verdict, model, reason, p_correct, ms";
 
 /**
  * GET ?no=N (default today) → one day's activity for the desk:
@@ -58,37 +64,92 @@ export async function GET(req: Request): Promise<Response> {
       throw err;
     }
   };
+  // flagged_at arrives with migration 005; until then, show no flags
+  let flagsMissing = false;
+  const fromFlags = async <T>(
+    text: string,
+    params: unknown[],
+  ): Promise<T[]> => {
+    try {
+      return await fromLog<T>(text, params);
+    } catch (err) {
+      if (
+        /flagged_at/.test(String((err as Error)?.message)) ||
+        (err as { code?: string })?.code === "42703"
+      ) {
+        flagsMissing = true;
+        return [];
+      }
+      throw err;
+    }
+  };
   const from = Math.max(1, today - 13);
 
   try {
-    const [stored, results, guesses, top, dayResults, dayGuesses] =
-      await Promise.all([
-        getPuzzle(sql, no),
-        q<{ solved_on_clue: number; count: number }>(
-          "select solved_on_clue, count from daily_results where puzzle_no = $1",
-          [no],
-        ),
-        fromLog<Record<string, unknown>>(
-          `select id, created_at, row_no, guess, verdict, model, reason, p_correct, ms from guess_log
+    const [
+      stored,
+      results,
+      guesses,
+      top,
+      dayResults,
+      dayGuesses,
+      flagged,
+      dayFlags,
+    ] = await Promise.all([
+      getPuzzle(sql, no),
+      q<{ solved_on_clue: number; count: number }>(
+        "select solved_on_clue, count from daily_results where puzzle_no = $1",
+        [no],
+      ),
+      fromLog<Record<string, unknown>>(
+        `select ${GUESS_COLS} from guess_log
          where puzzle_no = $1 order by created_at desc limit ${RECENT}`,
-          [no],
-        ),
-        fromLog<{ guess: string; n: number; correct: number; close: number }>(
-          `select lower(trim(guess)) as guess, count(*)::int as n,
+        [no],
+      ),
+      fromLog<{ guess: string; n: number; correct: number; close: number }>(
+        `select lower(trim(guess)) as guess, count(*)::int as n,
                 sum(case when verdict = 'correct' then 1 else 0 end)::int as correct,
                 sum(case when verdict = 'close' then 1 else 0 end)::int as close
          from guess_log where puzzle_no = $1 group by 1 order by 2 desc, 1 limit 15`,
-          [no],
-        ),
-        q<{ puzzle_no: number; solved_on_clue: number; count: number }>(
-          "select puzzle_no, solved_on_clue, count from daily_results where puzzle_no between $1 and $2",
-          [from, today],
-        ),
-        fromLog<{ puzzle_no: number; n: number }>(
-          "select puzzle_no, count(*)::int as n from guess_log where puzzle_no between $1 and $2 group by puzzle_no",
-          [from, today],
-        ),
-      ]);
+        [no],
+      ),
+      q<{ puzzle_no: number; solved_on_clue: number; count: number }>(
+        "select puzzle_no, solved_on_clue, count from daily_results where puzzle_no between $1 and $2",
+        [from, today],
+      ),
+      fromLog<{ puzzle_no: number; n: number }>(
+        "select puzzle_no, count(*)::int as n from guess_log where puzzle_no between $1 and $2 group by puzzle_no",
+        [from, today],
+      ),
+      fromFlags<Record<string, unknown>>(
+        `select ${GUESS_COLS}, flagged_at from guess_log
+           where puzzle_no = $1 and flagged_at is not null order by flagged_at desc limit 100`,
+        [no],
+      ),
+      fromFlags<{ puzzle_no: number; n: number }>(
+        `select puzzle_no, count(*)::int as n from guess_log
+           where puzzle_no between $1 and $2 and flagged_at is not null group by puzzle_no`,
+        [from, today],
+      ),
+    ]);
+    const flaggedAt = new Map(
+      flagged.map((g) => [
+        Number(g.id),
+        new Date(g.flagged_at as string).toISOString(),
+      ]),
+    );
+    const toGuess = (g: Record<string, unknown>): ActivityGuess => ({
+      id: Number(g.id),
+      at: new Date(g.created_at as string).toISOString(),
+      row: g.row_no == null ? null : Number(g.row_no),
+      guess: String(g.guess),
+      verdict: g.verdict as ActivityGuess["verdict"],
+      model: (g.model as string) ?? null,
+      reason: (g.reason as string) ?? null,
+      pCorrect: g.p_correct == null ? null : Number(g.p_correct),
+      ms: g.ms == null ? null : Number(g.ms),
+      flaggedAt: flaggedAt.get(Number(g.id)) ?? null,
+    });
 
     // index 0 = gave up / missed, 1..5 = solved on that row
     const counts = [0, 0, 0, 0, 0, 0];
@@ -108,6 +169,7 @@ export async function GET(req: Request): Promise<Response> {
         guesses: Number(
           dayGuesses.find((g) => Number(g.puzzle_no) === n)?.n ?? 0,
         ),
+        flags: Number(dayFlags.find((g) => Number(g.puzzle_no) === n)?.n ?? 0),
       });
     }
 
@@ -120,19 +182,9 @@ export async function GET(req: Request): Promise<Response> {
           ? { connection: stored.data.connection, clues: stored.data.clues }
           : null,
       counts,
-      guesses: guesses.map(
-        (g): ActivityGuess => ({
-          id: Number(g.id),
-          at: new Date(g.created_at as string).toISOString(),
-          row: g.row_no == null ? null : Number(g.row_no),
-          guess: String(g.guess),
-          verdict: g.verdict as ActivityGuess["verdict"],
-          model: (g.model as string) ?? null,
-          reason: (g.reason as string) ?? null,
-          pCorrect: g.p_correct == null ? null : Number(g.p_correct),
-          ms: g.ms == null ? null : Number(g.ms),
-        }),
-      ),
+      guesses: guesses.map(toGuess),
+      flagged: flagged.map(toGuess),
+      flagsMissing,
       top: top.map((t) => ({
         guess: t.guess,
         n: Number(t.n),

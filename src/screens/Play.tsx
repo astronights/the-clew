@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Thread } from '../components/Thread';
 import { confetti } from '../components/confetti';
-import { judgeRemote, JudgeUnavailable } from '../lib/api';
+import { flagGuess, judgeRemote, JudgeUnavailable } from '../lib/api';
 import { canOpenNext, giveUp, guessRule, isLastRow, isOver, newGame, next, ROWS, type GameState } from '../lib/game';
 import type { Puzzle } from '../lib/puzzle';
 import { load, save } from '../lib/storage';
@@ -25,12 +25,19 @@ function restore(p: Puzzle, key: string, seed: string): GameState {
 
 const RULE_EXAMPLE = 'e.g. Bond films';
 
+/** The last rejected guess, with a way to flag it for the editor ("I think I was right"). */
+interface Rejected {
+  text: string;
+  id?: number;
+  flag: 'none' | 'sending' | 'sent' | 'failed';
+}
+
 export function Play({ puzzle, storageKey, seed, title, onFinish, renderResult }: Props) {
   const [game, setGame] = useState<GameState>(() => restore(puzzle, storageKey, seed));
   const [ruleText, setRuleText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<Rejected | null>(null);
   const [announce, setAnnounce] = useState('');
   const finishedRef = useRef(isOver(game));
   const endRef = useRef<HTMLDivElement>(null);
@@ -67,17 +74,44 @@ export function Play({ puzzle, storageKey, seed, title, onFinish, renderResult }
     if (text.length < 3) return setError('Describe the rule in a few words.');
     // every rule guess is judged by the AI judge
     let correct = false;
+    let id: number | undefined;
     setBusy(true);
     try {
-      correct = (await judgeRemote(puzzle.id, text, game.revealed)).verdict === 'correct';
+      const r = await judgeRemote(puzzle.id, text, game.revealed);
+      correct = r.verdict === 'correct';
+      id = r.id;
     } catch (e) {
       setBusy(false);
       return setError(e instanceof JudgeUnavailable ? `${e.message} Nothing was used up.` : 'Something went wrong.');
     }
     setBusy(false);
     apply(guessRule(game, text, correct), correct ? '' : 'Not it. ');
-    if (!correct) setFeedback(`“${text}” · not it.`);
+    if (!correct) setFeedback({ text, id, flag: 'none' });
   };
+
+  const onFlag = async () => {
+    if (!feedback?.id || feedback.flag !== 'none') return;
+    setFeedback({ ...feedback, flag: 'sending' });
+    const ok = await flagGuess(feedback.id);
+    setFeedback((f) => (f ? { ...f, flag: ok ? 'sent' : 'failed' } : f));
+  };
+
+  const rejected = feedback && !error && (
+    <p className="said">
+      “{feedback.text}” · not it.
+      {feedback.id != null && feedback.flag === 'none' && (
+        <>
+          {' '}
+          <button type="button" className="btn-inline" onClick={() => void onFlag()}>
+            I think I was right
+          </button>
+        </>
+      )}
+      {feedback.flag === 'sending' && ' Sending…'}
+      {feedback.flag === 'sent' && ' Thanks, flagged for review.'}
+      {feedback.flag === 'failed' && " Couldn't send that, sorry."}
+    </p>
+  );
 
   return (
     <div className="play">
@@ -92,6 +126,7 @@ export function Play({ puzzle, storageKey, seed, title, onFinish, renderResult }
 
       <Thread puzzle={puzzle} revealed={game.revealed} over={over} />
 
+      {over && rejected}
       {over && renderResult(game)}
       <div ref={endRef} />
 
@@ -123,7 +158,7 @@ export function Play({ puzzle, storageKey, seed, title, onFinish, renderResult }
               {busy ? <span className="spin" aria-label="Judging" /> : 'Submit'}
             </button>
           </form>
-          {feedback && !error && <p className="said">{feedback}</p>}
+          {rejected}
           {error && (
             <p className="form-error" role="alert">
               {error}
