@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canOpenNext, giveUp, guessRule, newGame, next, ROWS } from '../src/lib/game';
+import { canOpenNext, giveUp, guessRule, newGame, next, ROWS, upholdRule } from '../src/lib/game';
 import { fromChain } from '../src/lib/puzzle';
 import type { ChainPuzzle } from '../src/lib/chain';
 
@@ -47,5 +47,14 @@ describe('game flow', () => {
     const done = guessRule(newGame(p, 's'), 'planets', true);
     expect(guessRule(done, 'x', false)).toBe(done);
     expect(next(done)).toBe(done);
+  });
+  it('an upheld appeal counts as solved on the row the guess was made on', () => {
+    const missed = guessRule(newGame(p, 's'), 'wedding anniversary', false); // made on row 1, opened row 2
+    expect(upholdRule(missed, 1)).toMatchObject({ status: 'solved', solvedOn: 1, outcomes: ['solved'] });
+    let g = newGame(p, 's');
+    for (let i = 1; i < ROWS; i++) g = next(g);
+    const failed = guessRule(g, 'x', false);
+    expect(failed.status).toBe('failed');
+    expect(upholdRule(failed, ROWS)).toMatchObject({ status: 'solved', solvedOn: ROWS, outcomes: ['next', 'next', 'next', 'next', 'solved'] });
   });
 });

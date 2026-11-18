@@ -9,17 +9,22 @@ export interface JudgeResponse {
   id?: number;
 }
 
-/** "I think I was right": flag a rejected rule guess for the editor. Returns whether it was recorded. */
-export async function flagGuess(id: number): Promise<boolean> {
+/**
+ * "I think I was right": flag a rejected rule guess. The server records it for the editor and has a
+ * reviewer look again; `upheld` means the reviewer agreed it counts. null = couldn't send.
+ */
+export async function flagGuess(id: number): Promise<{ upheld: boolean } | null> {
   try {
     const res = await fetch('/api/flag', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ id }),
     });
-    return res.ok;
+    if (!res.ok) return null;
+    const data = (await res.json().catch(() => ({}))) as { upheld?: boolean };
+    return { upheld: data.upheld === true };
   } catch {
-    return false;
+    return null;
   }
 }
 

@@ -77,11 +77,15 @@ export async function POST(req: Request): Promise<Response> {
           model:
             known[0].source === "editor"
               ? "accepted by editor"
-              : "accepted earlier",
+              : known[0].source === "review"
+                ? "accepted on appeal"
+                : "accepted earlier",
           reason:
             known[0].source === "editor"
               ? "You accepted this wording."
-              : "Same wording as a guess already judged correct.",
+              : known[0].source === "review"
+                ? "Same wording as an appeal the reviewer upheld."
+                : "Same wording as a guess already judged correct.",
         };
     } catch (err) {
       console.error(

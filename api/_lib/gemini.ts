@@ -145,7 +145,7 @@ async function decideWith(model: string, key: string, p: Puzzle, guess: string):
 export const FALLBACK_JUDGE_MODEL = 'gemini-2.5-flash';
 
 /** Ask one model for a verdict. Throws on any failure (HTTP error, unusable reply, timeout). */
-async function judgeWith(model: string, key: string, p: Puzzle, guess: string): Promise<Raw> {
+async function judgeWith(model: string, key: string, p: Puzzle, guess: string, extra = ''): Promise<Raw> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 15_000);
   try {
@@ -154,7 +154,7 @@ async function judgeWith(model: string, key: string, p: Puzzle, guess: string): 
       signal: ctrl.signal,
       headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: buildSystemPrompt(p) }] },
+        systemInstruction: { parts: [{ text: buildSystemPrompt(p) + extra }] },
         contents: [{ role: 'user', parts: [{ text: `<guess>${sanitizeGuess(guess)}</guess>` }] }],
         generationConfig: {
           ...generationSettings(model, 'judge'),
@@ -224,3 +224,31 @@ export async function askGemini(p: Puzzle, guess: string): Promise<JudgeResult> 
 
 /** Decision-model probabilities from here up to the threshold are "unsure" and get a second opinion. */
 export const SECOND_OPINION_FROM = 0.2;
+
+/** Appended to the judge prompt when a player appeals ("I think I was right"). */
+export const APPEAL_NOTE = `
+
+## Appeal
+
+This guess was rejected and the player has appealed: they believe it is right. Look at it again carefully
+and from the player's side. Check whether it names a valid sequence that gives these items in this order,
+whether a different but equally valid naming is meant (another series with the same items, another
+language, a common nickname), and whether only the wording or a missing qualifier made it look wrong.
+If a fair quizmaster would accept it on reflection, the verdict is "correct". Keep "wrong" for guesses
+that really describe something else, and "close" for ones that really are too vague.`;
+
+export const REVIEW_MODEL_DEFAULT = 'gemini-2.5-flash';
+
+/**
+ * Second look at a flagged guess, with the appeal note. Uses GEMINI_REVIEW_MODEL (a text model), or
+ * gemini-2.5-flash. Throws on failure; the flag is still recorded either way.
+ */
+export async function reviewAppeal(p: Puzzle, guess: string): Promise<JudgeResult> {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) throw new Error('GEMINI_API_KEY is not set');
+  const configured = process.env.GEMINI_REVIEW_MODEL || REVIEW_MODEL_DEFAULT;
+  // decision models can't take the appeal prompt as a system instruction; use the text default instead
+  const model = isDecisionModel(configured) ? REVIEW_MODEL_DEFAULT : configured;
+  const r = await judgeWith(model, key, p, guess, APPEAL_NOTE);
+  return { ...r, hint: '', model };
+}

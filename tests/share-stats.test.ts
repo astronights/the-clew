@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { neededMorePercent, shareText } from '../src/lib/share';
-import { applyResult, displayedStreak, emptyStats } from '../src/lib/stats';
+import { applyResult, displayedStreak, emptyStats, upgradeMissToSolve } from '../src/lib/stats';
 import { buildSystemPrompt, loadJudgeTemplate, sanitizeGuess } from '../api/_lib/gemini';
 import { fromChain } from '../src/lib/puzzle';
 import { LIBRARY } from '../src/puzzles/library';
@@ -20,6 +20,17 @@ describe('share', () => {
 });
 
 describe('stats', () => {
+  it('an upheld appeal turns today\'s miss into a solve and restores the streak', () => {
+    let s = applyResult(emptyStats(), 10, 2);
+    s = applyResult(s, 11, 3);
+    s = applyResult(s, 12, 0); // a miss breaks the streak
+    expect(s.currentStreak).toBe(0);
+    const fixed = upgradeMissToSolve(s, 12, 4);
+    expect(fixed).toMatchObject({ solved: 3, currentStreak: 3, lastSolved: 12 });
+    expect(fixed.dist[0]).toBe(0);
+    expect(fixed.dist[4]).toBe(1);
+    expect(upgradeMissToSolve(fixed, 12, 4)).toBe(fixed); // only once
+  });
   it('tracks streaks and ignores duplicate results', () => {
     let s = emptyStats();
     s = applyResult(s, 10, 3);

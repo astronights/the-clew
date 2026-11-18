@@ -60,3 +60,13 @@ export function guessRule(s: GameState, text: string, correct: boolean): GameSta
 export function giveUp(s: GameState): GameState {
   return s.status === 'playing' ? { ...s, status: 'failed', solvedOn: 0 } : s;
 }
+
+/**
+ * An appeal on a rejected rule guess was upheld: the game counts as solved on the row the guess was
+ * made on (even if the player has opened more clues since, or the game had ended as a miss).
+ */
+export function upholdRule(s: GameState, row: number): GameState {
+  if (s.status === 'solved' && (s.solvedOn ?? 0) <= row) return s;
+  if (row < 1 || row > ROWS) return s;
+  return { ...s, status: 'solved', solvedOn: row, outcomes: [...s.outcomes.slice(0, row - 1), 'solved'] };
+}

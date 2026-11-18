@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Thread } from '../components/Thread';
 import { confetti } from '../components/confetti';
 import { flagGuess, judgeRemote, JudgeUnavailable } from '../lib/api';
-import { canOpenNext, giveUp, guessRule, isLastRow, isOver, newGame, next, ROWS, type GameState } from '../lib/game';
+import { canOpenNext, giveUp, guessRule, isLastRow, isOver, newGame, next, ROWS, upholdRule, type GameState } from '../lib/game';
 import type { Puzzle } from '../lib/puzzle';
 import { load, save } from '../lib/storage';
 
@@ -14,6 +14,8 @@ interface Props {
   title: string;
   /** Called once when the game finishes. */
   onFinish?: (state: GameState) => void;
+  /** An appeal turned a game that had already ended as a miss into a solve. */
+  onUpheldAfterEnd?: (state: GameState) => void;
   renderResult: (state: GameState) => ReactNode;
 }
 
@@ -29,10 +31,12 @@ const RULE_EXAMPLE = 'e.g. Bond films';
 interface Rejected {
   text: string;
   id?: number;
-  flag: 'none' | 'sending' | 'sent' | 'failed';
+  /** The row the guess was made on. */
+  row: number;
+  flag: 'none' | 'sending' | 'sent' | 'upheld' | 'failed';
 }
 
-export function Play({ puzzle, storageKey, seed, title, onFinish, renderResult }: Props) {
+export function Play({ puzzle, storageKey, seed, title, onFinish, onUpheldAfterEnd, renderResult }: Props) {
   const [game, setGame] = useState<GameState>(() => restore(puzzle, storageKey, seed));
   const [ruleText, setRuleText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -86,14 +90,25 @@ export function Play({ puzzle, storageKey, seed, title, onFinish, renderResult }
     }
     setBusy(false);
     apply(guessRule(game, text, correct), correct ? '' : 'Not it. ');
-    if (!correct) setFeedback({ text, id, flag: 'none' });
+    if (!correct) setFeedback({ text, id, row: game.revealed, flag: 'none' });
   };
 
   const onFlag = async () => {
     if (!feedback?.id || feedback.flag !== 'none') return;
     setFeedback({ ...feedback, flag: 'sending' });
-    const ok = await flagGuess(feedback.id);
-    setFeedback((f) => (f ? { ...f, flag: ok ? 'sent' : 'failed' } : f));
+    const res = await flagGuess(feedback.id);
+    if (res?.upheld) {
+      // the reviewer agreed: it counts, on the clue the guess was made on
+      const endedAsMiss = isOver(game);
+      const fixed = upholdRule(game, feedback.row);
+      setGame(fixed);
+      setAnnounce(`On a second look, that counts! Solved on clue ${feedback.row}.`);
+      confetti();
+      if (endedAsMiss) onUpheldAfterEnd?.(fixed);
+      finishedRef.current = true;
+      if (!endedAsMiss) onFinish?.(fixed);
+    }
+    setFeedback((f) => (f ? { ...f, flag: res === null ? 'failed' : res.upheld ? 'upheld' : 'sent' } : f));
   };
 
   const rejected = feedback && !error && (
@@ -107,8 +122,9 @@ export function Play({ puzzle, storageKey, seed, title, onFinish, renderResult }
           </button>
         </>
       )}
-      {feedback.flag === 'sending' && ' Sending…'}
-      {feedback.flag === 'sent' && ' Thanks, flagged for review.'}
+      {feedback.flag === 'sending' && ' Taking a second look…'}
+      {feedback.flag === 'sent' && ' Still not it on a second look, but it’s flagged for a human to check.'}
+      {feedback.flag === 'upheld' && ' On a second look, that counts! ✓'}
       {feedback.flag === 'failed' && " Couldn't send that, sorry."}
     </p>
   );

@@ -6,7 +6,7 @@ import { msUntilNextPuzzle } from '../lib/daily';
 import type { GameState } from '../lib/game';
 import { fromChain } from '../lib/puzzle';
 import { load, save } from '../lib/storage';
-import { applyResult, loadStats, saveStats } from '../lib/stats';
+import { applyResult, loadStats, saveStats, upgradeMissToSolve } from '../lib/stats';
 import { Play } from './Play';
 
 export function Today({ puzzleNo }: { puzzleNo: number }) {
@@ -54,6 +54,7 @@ export function Today({ puzzleNo }: { puzzleNo: number }) {
       seed={`daily:${puzzleNo}`}
       title={`No. ${puzzleNo}`}
       onFinish={onFinish}
+      onUpheldAfterEnd={(g) => saveStats(upgradeMissToSolve(loadStats(), puzzleNo, g.solvedOn ?? 0))}
       renderResult={(g) => <ResultCard puzzle={puzzle} solvedOn={g.solvedOn ?? 0} outcomes={g.outcomes} puzzleNo={puzzleNo} counts={counts} />}
     />
   );

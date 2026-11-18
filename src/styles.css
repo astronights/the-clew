@@ -1465,3 +1465,6 @@ select.input {
   border-left: 3px solid var(--thread);
   padding-left: 12px;
 }
+.act-review {
+  color: var(--ink-2);
+}

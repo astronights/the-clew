@@ -103,7 +103,7 @@ api/
   admin/accept.ts     POST {id}: accept a rejected wording for that puzzle, for everyone (ADMIN_TOKEN)
   cron/reminder.ts    daily check (Vercel Cron, CRON_SECRET): Sunday summary + "tomorrow isn't ready" nudge
   _lib/               db client, Gemini judge + sanitising, generator, puzzle store, rate limit, admin auth
-db/migrations/        001_init.sql … 006_accepted_guesses.sql
+db/migrations/        001_init.sql … 007_flag_review.sql
 admin.html            the desk's own page (manifest, icons, service worker); /admin rewrites to it
 public/               admin.webmanifest, admin-sw.js, icons/
 prompts/              puzzle-generator.md (writing puzzles), judge.md (judging rule guesses)
@@ -164,6 +164,7 @@ npm run build             # typecheck + production build
 | `GEMINI_API_KEY` | for prod | Google AI Studio key, for the judge and the puzzle writer. |
 | `GEMINI_MODEL` | no | Model for **judging players' rule guesses** (every guess = 1 request). Default `gemini-2.5-flash`. A decision model such as `gemini-decision-1` is used through the **Decisions API** (one yes/no question, correct when P ≥ 0.5). If the model fails (unknown, unsupported, quota), that guess is judged by `gemini-2.5-flash` instead. |
 | `GEMINI_GENERATOR_MODEL` | no | Model for **writing puzzles** (a request or two a week), e.g. `gemini-3.8-flash`. Default `gemini-2.5-flash`. Settings adapt to the model family. |
+| `GEMINI_REVIEW_MODEL` | no | Text model that takes a **second look when a player flags** a rejected guess ("I think I was right"), with an appeal prompt; if it agrees, the guess counts and the wording is accepted for everyone. Default `gemini-2.5-flash`. Also used as the second opinion when a decision model is unsure (set `GEMINI_SECOND_OPINION_MODEL` to change that one). |
 | `GEMINI_THINKING_LEVEL` / `GEMINI_GENERATOR_THINKING_LEVEL` | no | Gemini 3.x only: thinking level for judging / writing, default `low`. |
 | `ADMIN_TOKEN` | for `/admin` | Password for the puzzle desk (12+ characters). Admin is off when unset. |
 | `IP_HASH_SALT` | recommended | Salt for hashing IPs in `rate_limit`. Raw IPs are never stored. |

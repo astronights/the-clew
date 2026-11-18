@@ -18,6 +18,8 @@ interface Guess {
   flaggedAt?: string | null;
   /** The editor accepted this wording (future identical guesses count as correct). */
   accepted?: boolean;
+  /** The reviewer's second look after a player flagged it. */
+  review?: { verdict: string; reason: string } | null;
 }
 
 interface Data {
@@ -281,6 +283,11 @@ function GuessItem({ g, onAccept }: { g: Guess; onAccept: (g: Guess) => void }) 
         <p className="act-reason">
           {g.reason}
           {g.pCorrect != null && <span className="admin-small">{g.reason ? ' · ' : ''}P(correct) {g.pCorrect.toFixed(2)}</span>}
+        </p>
+      )}
+      {g.review && (
+        <p className="act-reason act-review">
+          <strong>Second look: {g.review.verdict === 'correct' ? 'upheld' : g.review.verdict}.</strong> {g.review.reason}
         </p>
       )}
       <p className="admin-small act-meta">
