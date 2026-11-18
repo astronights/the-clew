@@ -44,6 +44,33 @@ describe('judging with a decision model (Decisions API)', () => {
     vi.stubGlobal('fetch', async () => decision(0.05));
     expect((await askGemini(puzzle, 'cheese')).verdict).toBe('wrong');
   });
+  it('an unsure decision gets a second opinion from a text model, which can accept it', async () => {
+    process.env.GEMINI_API_KEY = 'test';
+    process.env.GEMINI_MODEL = 'gemini-decision-1';
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const calls: string[] = [];
+    vi.stubGlobal('fetch', async (url: string) => {
+      calls.push(url);
+      return url.includes('/decisions') ? decision(0.3) : ok('correct', 'Names the anniversary gifts.');
+    });
+    const r = await askGemini(puzzle, 'wedding anniversary');
+    expect(r).toMatchObject({ verdict: 'correct', pCorrect: 0.3 });
+    expect(r.reason).toMatch(/Second opinion/);
+    expect(calls).toHaveLength(2);
+    expect(calls[1]).toContain(FALLBACK_JUDGE_MODEL);
+  });
+  it('a confident no gets no second opinion', async () => {
+    process.env.GEMINI_API_KEY = 'test';
+    process.env.GEMINI_MODEL = 'gemini-decision-1';
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const calls: string[] = [];
+    vi.stubGlobal('fetch', async (url: string) => {
+      calls.push(url);
+      return decision(0.08);
+    });
+    expect((await askGemini(puzzle, 'cheese')).verdict).toBe('wrong');
+    expect(calls).toHaveLength(1);
+  });
   it('the decision instructions keep the rules but drop the JSON output section', () => {
     const t = decisionInstructions();
     expect(t).toContain('## Worked examples');

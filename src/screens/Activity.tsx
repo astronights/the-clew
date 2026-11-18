@@ -16,6 +16,8 @@ interface Guess {
   ms: number | null;
   /** Set when a player said "I think I was right". */
   flaggedAt?: string | null;
+  /** The editor accepted this wording (future identical guesses count as correct). */
+  accepted?: boolean;
 }
 
 interface Data {
@@ -65,6 +67,17 @@ export function Activity({ token, onLock }: { token: string; onLock: () => void 
   useEffect(() => {
     void load();
   }, [load]);
+
+  /** Accept a rejected wording for this puzzle, for every player from now on. */
+  const accept = async (g: Guess) => {
+    if (!window.confirm(`Accept "${g.guess}" for this puzzle? Anyone typing the same wording from now on gets it right.`)) return;
+    try {
+      await call(token, '/api/admin/accept', { id: g.id });
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
 
   if (!data) {
     return (
@@ -182,7 +195,7 @@ export function Activity({ token, onLock }: { token: string; onLock: () => void 
           </div>
           <ul className="act-guesses">
             {data.flagged.map((g) => (
-              <GuessItem key={g.id} g={g} />
+              <GuessItem key={g.id} g={g} onAccept={accept} />
             ))}
           </ul>
         </div>
@@ -205,7 +218,7 @@ export function Activity({ token, onLock }: { token: string; onLock: () => void 
         ) : (
           <ul className="act-guesses">
             {shown.map((g) => (
-              <GuessItem key={g.id} g={g} />
+              <GuessItem key={g.id} g={g} onAccept={accept} />
             ))}
           </ul>
         )}
@@ -253,13 +266,14 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function GuessItem({ g }: { g: Guess }) {
+function GuessItem({ g, onAccept }: { g: Guess; onAccept: (g: Guess) => void }) {
   return (
     <li>
       <div className="act-guess-head">
         <span className="act-guess-text">{g.guess}</span>
         <span>
           {g.flaggedAt && <span className="chip verdict-flagged">flagged</span>}
+          {g.accepted && <span className="chip verdict-correct">accepted</span>}
           <span className={`chip verdict-${g.verdict}`}>{VERDICT_TEXT[g.verdict]}</span>
         </span>
       </div>
@@ -274,6 +288,14 @@ function GuessItem({ g }: { g: Guess }) {
         {g.row ? ` · clue ${g.row} of 5` : ''}
         {g.model ? ` · ${g.model}` : ''}
         {g.ms != null ? ` · ${(g.ms / 1000).toFixed(1)}s` : ''}
+        {g.verdict !== 'correct' && !g.accepted && (
+          <>
+            {' · '}
+            <button type="button" className="btn-inline" onClick={() => onAccept(g)}>
+              Accept this
+            </button>
+          </>
+        )}
       </p>
     </li>
   );

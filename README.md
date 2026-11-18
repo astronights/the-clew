@@ -100,9 +100,10 @@ api/
   admin/push.ts       GET the VAPID key; POST subscribe / unsubscribe / test (ADMIN_TOKEN)
   admin/activity.ts   GET a day's plays, rule guesses and the judge's reasoning (ADMIN_TOKEN)
   flag.ts             POST {id}: a player flags a rejected rule guess for review
+  admin/accept.ts     POST {id}: accept a rejected wording for that puzzle, for everyone (ADMIN_TOKEN)
   cron/reminder.ts    daily check (Vercel Cron, CRON_SECRET): Sunday summary + "tomorrow isn't ready" nudge
   _lib/               db client, Gemini judge + sanitising, generator, puzzle store, rate limit, admin auth
-db/migrations/        001_init.sql … 005_guess_flags.sql
+db/migrations/        001_init.sql … 006_accepted_guesses.sql
 admin.html            the desk's own page (manifest, icons, service worker); /admin rewrites to it
 public/               admin.webmanifest, admin-sw.js, icons/
 prompts/              puzzle-generator.md (writing puzzles), judge.md (judging rule guesses)

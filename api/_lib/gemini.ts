@@ -195,13 +195,32 @@ export async function askGemini(p: Puzzle, guess: string): Promise<JudgeResult> 
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error('GEMINI_API_KEY is not set');
   const model = process.env.GEMINI_MODEL || FALLBACK_JUDGE_MODEL;
+  let r: Raw;
   try {
-    const r = isDecisionModel(model) ? await decideWith(model, key, p, guess) : await judgeWith(model, key, p, guess);
-    return { ...r, hint: '', model };
+    r = isDecisionModel(model) ? await decideWith(model, key, p, guess) : await judgeWith(model, key, p, guess);
   } catch (err) {
     if (model === FALLBACK_JUDGE_MODEL) throw err;
     console.error(`judge model ${model} failed, using ${FALLBACK_JUDGE_MODEL}:`, (err as Error).message);
-    const r = await judgeWith(FALLBACK_JUDGE_MODEL, key, p, guess);
-    return { ...r, hint: '', model: FALLBACK_JUDGE_MODEL, fallbackFrom: model };
+    const f = await judgeWith(FALLBACK_JUDGE_MODEL, key, p, guess);
+    return { ...f, hint: '', model: FALLBACK_JUDGE_MODEL, fallbackFrom: model };
   }
+
+  // A decision model's probability is noisy near the line ("wedding anniversary" 0.3 vs
+  // "wedding anniversaries" 0.61). When it's unsure, ask a text model too and accept if it says correct.
+  if (r.verdict !== 'correct' && r.pCorrect !== undefined && r.pCorrect >= SECOND_OPINION_FROM) {
+    const second = process.env.GEMINI_SECOND_OPINION_MODEL || FALLBACK_JUDGE_MODEL;
+    try {
+      const s = await judgeWith(second, key, p, guess);
+      console.log(`judge second opinion ${second}: ${s.verdict} (P was ${r.pCorrect.toFixed(2)})`);
+      if (s.verdict === 'correct')
+        return { verdict: 'correct', reason: `Second opinion: ${s.reason}`.trim(), pCorrect: r.pCorrect, hint: '', model: `${model} + ${second}` };
+      return { ...r, reason: s.reason, hint: '', model: `${model} + ${second}` };
+    } catch (err) {
+      console.error('second opinion failed', (err as Error).message);
+    }
+  }
+  return { ...r, hint: '', model };
 }
+
+/** Decision-model probabilities from here up to the threshold are "unsure" and get a second opinion. */
+export const SECOND_OPINION_FROM = 0.2;

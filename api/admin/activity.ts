@@ -18,6 +18,8 @@ export interface ActivityGuess {
   ms: number | null;
   /** When a player said "I think I was right". */
   flaggedAt: string | null;
+  /** The editor accepted this wording. */
+  accepted: boolean;
 }
 
 export interface ActivityDay {
@@ -83,6 +85,19 @@ export async function GET(req: Request): Promise<Response> {
       throw err;
     }
   };
+  // accepted_at arrives with migration 006; until then nothing shows as accepted
+  const optional = async <T>(text: string, params: unknown[]): Promise<T[]> => {
+    try {
+      return await fromLog<T>(text, params);
+    } catch (err) {
+      if (
+        (err as { code?: string })?.code === "42703" ||
+        /accepted_at/.test(String((err as Error)?.message))
+      )
+        return [];
+      throw err;
+    }
+  };
   const from = Math.max(1, today - 13);
 
   try {
@@ -95,6 +110,7 @@ export async function GET(req: Request): Promise<Response> {
       dayGuesses,
       flagged,
       dayFlags,
+      accepted,
     ] = await Promise.all([
       getPuzzle(sql, no),
       q<{ solved_on_clue: number; count: number }>(
@@ -131,7 +147,12 @@ export async function GET(req: Request): Promise<Response> {
            where puzzle_no between $1 and $2 and flagged_at is not null group by puzzle_no`,
         [from, today],
       ),
+      optional<{ id: number }>(
+        "select id from guess_log where puzzle_no = $1 and accepted_at is not null",
+        [no],
+      ),
     ]);
+    const acceptedIds = new Set(accepted.map((a) => Number(a.id)));
     const flaggedAt = new Map(
       flagged.map((g) => [
         Number(g.id),
@@ -149,6 +170,7 @@ export async function GET(req: Request): Promise<Response> {
       pCorrect: g.p_correct == null ? null : Number(g.p_correct),
       ms: g.ms == null ? null : Number(g.ms),
       flaggedAt: flaggedAt.get(Number(g.id)) ?? null,
+      accepted: acceptedIds.has(Number(g.id)),
     });
 
     // index 0 = gave up / missed, 1..5 = solved on that row
