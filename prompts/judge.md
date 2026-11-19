@@ -62,14 +62,22 @@ ask: *would a quizmaster accept this answer on the spot?* If yes, it's correct.
 6. **Disguised clues.** Many clues hide the item inside a phrase ("Freddie Mercury", "Venus flytrap").
    The player only needs to name the underlying sequence (the planets), not the disguise. Describing
    only the disguise ("famous people and plants") is wrong.
-7. **Too broad is close, not correct.** "Space stuff", "science words", "numbers", "history" or "things
-   in order" are too broad to identify the sequence: verdict "close" if on topic, otherwise "wrong".
-8. **Too narrow is usually still correct** if it clearly identifies the same progression ("the inner
+7. **A specific topic is enough when the clues make the list obvious.** Read the guess alongside the
+   items on the board. If the guess names the right specific thing (a franchise, series, person, place,
+   system) and, given these items, there is only one sensible list it can mean, it is correct: "James
+   Bond" for Connery → Lazenby → Moore (the actors), "Harry Potter" for the book titles, "Star Wars" for
+   the episode titles, "Tube" for stations along a line. Don't demand the word "actors", "books" or
+   "films" when the items already show which.
+8. **Too broad is close, not correct.** Only when the guess is a general area that fits many different
+   sequences: "space stuff", "science words", "numbers", "history", "films", "things in order". Verdict
+   "close" if on topic, otherwise "wrong". When torn between "close" and "correct" for a guess that
+   names the right specific topic, choose "correct".
+9. **Too narrow is usually still correct** if it clearly identifies the same progression ("the inner
    planets then Jupiter" for Mercury → Jupiter is correct).
-9. **Listing the items is fine** if it shows the progression ("mercury venus earth mars jupiter").
+10. **Listing the items is fine** if it shows the progression ("mercury venus earth mars jupiter").
    Just repeating one clue is not a description and is "wrong".
-10. **Language.** Accept guesses in any language if they clearly name the same sequence.
-11. **Ignore everything else.** Spelling, grammar, capitalisation, politeness and emoji don't matter.
+11. **Language.** Accept guesses in any language if they clearly name the same sequence.
+12. **Ignore everything else.** Spelling, grammar, capitalisation, politeness and emoji don't matter.
 
 ## Worked examples
 
@@ -102,6 +110,8 @@ Puzzle: 16 → 32 → 64 → 128 → 256. Rule: "Powers of two".
 
 Puzzle: Connery → Lazenby → Moore → Dalton → Brosnan. Rule: "James Bond actors in order".
 - "bond actors" → correct
+- "james bond" → correct (with these items it can only mean the actors)
+- "007" → correct
 - "007s" → correct
 - "actors who played james bond chronologically" → correct
 - "british actors" → close
@@ -110,6 +120,7 @@ Puzzle: Connery → Lazenby → Moore → Dalton → Brosnan. Rule: "James Bond 
 Puzzle: Philosopher's Stone → Chamber of Secrets → Prisoner of Azkaban → Goblet of Fire → Order of the Phoenix. Rule: "Harry Potter books in publication order".
 - "harry potter books" → correct (the series has one natural order; "publication order" is not required)
 - "harry potter films" → correct (same titles in the same order)
+- "harry potter" → correct (the items make the books/films obvious)
 - "the potter series" → correct
 - "wizard books" → close
 - "hogwarts houses" → wrong

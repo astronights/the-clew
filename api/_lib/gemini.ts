@@ -122,8 +122,8 @@ async function decideWith(model: string, key: string, p: Puzzle, guess: string):
             instructions: decisionInstructions(),
             criteria: {
               true_description:
-                "The guess names a sequence that gives these five items in this order, in any wording (a quizmaster would accept it). The official rule's extra qualifiers are not required, and an equally valid sequence with the same items counts.",
-              false_description: 'The guess is too vague to identify the sequence, describes a sequence with different items or a different order, or is not a real answer.',
+                "The guess identifies this sequence in any wording, read alongside the items on the board (a quizmaster would accept it). Naming the specific topic is enough when the items make the list obvious (\"James Bond\" for the Bond actors). The official rule's extra qualifiers are not required, and an equally valid sequence with the same items counts.",
+              false_description: 'The guess is a general area that fits many sequences (\"films\", \"space\"), describes a sequence with different items or a different order, or is not a real answer.',
             },
           },
         },
@@ -223,7 +223,7 @@ export async function askGemini(p: Puzzle, guess: string): Promise<JudgeResult> 
 }
 
 /** Decision-model probabilities from here up to the threshold are "unsure" and get a second opinion. */
-export const SECOND_OPINION_FROM = 0.2;
+export const SECOND_OPINION_FROM = 0.1;
 
 /** Appended to the judge prompt when a player appeals ("I think I was right"). */
 export const APPEAL_NOTE = `
